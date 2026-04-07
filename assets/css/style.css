@@ -36,6 +36,7 @@ body::before {
 /* ==================== NAVBAR ==================== */
 .navbar {
     background: rgba(10, 10, 25, 0.95) !important;
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-bottom: 2px solid var(--primary-gold);
     padding: 1rem 0;
@@ -145,6 +146,7 @@ body::before {
     padding: 40px 30px;
     text-align: center;
     transition: all 0.3s ease;
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     height: 100%;
 }
@@ -235,6 +237,7 @@ body::before {
     padding: 35px;
     margin-bottom: 30px;
     transition: all 0.3s ease;
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
 }
 
@@ -285,6 +288,7 @@ body::before {
     border: 1px solid rgba(255, 215, 0, 0.2);
     border-radius: 25px;
     padding: 50px;
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
 }
 
