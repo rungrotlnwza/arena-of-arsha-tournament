@@ -38,7 +38,7 @@
             </ul>
         </div>
 
-        <form id="registrationForm" action="/register" method="POST">
+        <form id="registrationForm" action="/register-success" method="GET">
             <!-- Team Information -->
             <div class="mb-5">
                 <h3 class="form-section-title">
@@ -186,10 +186,3 @@
         </form>
     </div>
 </div>
-
-<script>
-    document.getElementById('registrationForm').addEventListener('submit', function (e) {
-        // Form validation and submission will be handled by the server
-        console.log('Form submitted');
-    });
-</script>

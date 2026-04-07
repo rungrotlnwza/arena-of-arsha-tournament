@@ -12,25 +12,19 @@
         <div class="row g-4">
             <div class="col-md-4">
                 <div class="stat-card text-center">
-                    <div style="font-size: 3rem; font-weight: 700; color: var(--primary-gold);">
-                        <%= stats.teams || 0 %>
-                    </div>
+                    <div style="font-size: 3rem; font-weight: 700; color: var(--primary-gold);">0</div>
                     <div style="color: #888;">ทีมที่สมัคร</div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="stat-card text-center">
-                    <div style="font-size: 3rem; font-weight: 700; color: var(--primary-gold);">
-                        <%= stats.players || 0 %>
-                    </div>
+                    <div style="font-size: 3rem; font-weight: 700; color: var(--primary-gold);">0</div>
                     <div style="color: #888;">ผู้เล่นทั้งหมด</div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="stat-card text-center">
-                    <div style="font-size: 3rem; font-weight: 700; color: var(--primary-gold);">
-                        <%= stats.slots || 0 %>
-                    </div>
+                    <div style="font-size: 3rem; font-weight: 700; color: var(--primary-gold);">32</div>
                     <div style="color: #888;">ที่นั่งว่าง</div>
                 </div>
             </div>
@@ -38,84 +32,17 @@
     </div>
 </section>
 
-<!-- Filter Section -->
-<section class="filter-section py-4">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-6 mb-3 mb-md-0">
-                <div class="input-group">
-                    <span class="input-group-text" style="background: rgba(255,215,0,0.1); border: 2px solid rgba(255,215,0,0.2); border-right: none; color: var(--primary-gold);">
-                        <i class="bi bi-search"></i>
-                    </span>
-                    <input type="text" class="form-control" id="searchTeams" placeholder="ค้นหาทีมหรือผู้เล่น..." style="background: rgba(255,255,255,0.05); border: 2px solid rgba(255,215,0,0.2); color: #fff;">
-                </div>
-            </div>
-            <div class="col-md-6 text-md-end">
-                <button class="filter-btn active me-2" data-filter="all">ทั้งหมด</button>
-                <button class="filter-btn me-2" data-filter="confirmed">ยืนยันแล้ว</button>
-                <button class="filter-btn" data-filter="pending">รอการยืนยัน</button>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Teams Grid -->
+<!-- Empty State -->
 <section class="teams-section py-4">
     <div class="container">
-        <% if (teams && teams.length> 0) { %>
-            <div class="row g-4" id="teamsGrid">
-                <% teams.forEach((team, index)=> { %>
-                    <div class="col-lg-4 col-md-6 team-item" data-status="<%= team.status %>">
-                        <div class="team-card">
-                            <div class="team-rank" style="position: absolute; top: 20px; right: 20px; width: 40px; height: 40px; background: rgba(255,215,0,0.1); border: 2px solid var(--primary-gold); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--primary-gold);">
-                                <%= index + 1 %>
-                            </div>
-                            <h3 class="team-name" style="font-size: 1.4rem; font-weight: 600; color: var(--primary-gold); margin-bottom: 20px; padding-right: 50px;">
-                                <%= team.name %>
-                            </h3>
-                            <div class="player-info">
-                                <div class="player-avatar">
-                                    <%= team.player1.name.charAt(0) %>
-                                </div>
-                                <div class="player-details">
-                                    <h5>
-                                        <%= team.player1.name %>
-                                    </h5>
-                                    <p>อาชีพ: <%= team.player1.class || 'สุ่ม' %>
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="player-info">
-                                <div class="player-avatar">
-                                    <%= team.player2.name.charAt(0) %>
-                                </div>
-                                <div class="player-details">
-                                    <h5>
-                                        <%= team.player2.name %>
-                                    </h5>
-                                    <p>อาชีพ: <%= team.player2.class || 'สุ่ม' %>
-                                    </p>
-                                </div>
-                            </div>
-                            <span class="team-status <%= team.status === 'confirmed' ? 'status-confirmed' : 'status-pending' %>">
-                                <i class="bi bi-<%= team.status === 'confirmed' ? 'check-circle-fill' : 'clock-fill' %> me-1"></i>
-                                <%= team.status==='confirmed' ? 'ยืนยันแล้ว' : 'รอการยืนยัน' %>
-                            </span>
-                        </div>
-                    </div>
-                    <% }); %>
-            </div>
-            <% } else { %>
-                <!-- Empty State -->
-                <div class="empty-state text-center py-5">
-                    <i class="bi bi-people" style="font-size: 5rem; color: rgba(255,215,0,0.3);"></i>
-                    <h3 class="mt-3" style="color: #888;">ยังไม่มีทีมที่ลงทะเบียน</h3>
-                    <p style="color: #666;">รอการอัปเดตรายชื่อทีมเร็วๆ นี้</p>
-                    <a href="/register" class="btn btn-lg mt-3" style="background: var(--primary-gold); color: #000; padding: 12px 35px; border-radius: 50px; font-weight: 600;">
-                        <i class="bi bi-lightning-charge-fill me-2"></i>สมัครเข้าแข่งขัน
-                    </a>
-                </div>
-                <% } %>
+        <div class="empty-state text-center py-5">
+            <i class="bi bi-people" style="font-size: 5rem; color: rgba(255,215,0,0.3);"></i>
+            <h3 class="mt-3" style="color: #888;">ยังไม่มีทีมที่ลงทะเบียน</h3>
+            <p style="color: #666;">รอการอัปเดตรายชื่อทีมเร็วๆ นี้</p>
+            <a href="/register" class="btn btn-lg mt-3" style="background: var(--primary-gold); color: #000; padding: 12px 35px; border-radius: 50px; font-weight: 600;">
+                <i class="bi bi-lightning-charge-fill me-2"></i>สมัครเข้าแข่งขัน
+            </a>
+        </div>
     </div>
 </section>
 
@@ -130,27 +57,47 @@
                 <!-- Round 1 -->
                 <div class="bracket-round d-flex flex-column justify-content-center mx-3">
                     <div class="round-title text-center mb-3" style="color: #888; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px;">รอบที่ 1</div>
-                    <% for(let i=0; i < 4; i++) { %>
-                        <div class="bracket-match my-2">
-                            <div class="match-card" style="background: var(--card-bg); border: 1px solid rgba(255,215,0,0.2); border-radius: 12px; width: 180px; overflow: hidden;">
-                                <div class="match-team p-3" style="border-bottom: 1px solid rgba(255,215,0,0.1); color: #ccc;">TBD</div>
-                                <div class="match-team p-3" style="color: #ccc;">TBD</div>
-                            </div>
+                    <div class="bracket-match my-2">
+                        <div class="match-card" style="background: var(--card-bg); border: 1px solid rgba(255,215,0,0.2); border-radius: 12px; width: 180px; overflow: hidden;">
+                            <div class="match-team p-3" style="border-bottom: 1px solid rgba(255,215,0,0.1); color: #ccc;">TBD</div>
+                            <div class="match-team p-3" style="color: #ccc;">TBD</div>
                         </div>
-                        <% } %>
+                    </div>
+                    <div class="bracket-match my-2">
+                        <div class="match-card" style="background: var(--card-bg); border: 1px solid rgba(255,215,0,0.2); border-radius: 12px; width: 180px; overflow: hidden;">
+                            <div class="match-team p-3" style="border-bottom: 1px solid rgba(255,215,0,0.1); color: #ccc;">TBD</div>
+                            <div class="match-team p-3" style="color: #ccc;">TBD</div>
+                        </div>
+                    </div>
+                    <div class="bracket-match my-2">
+                        <div class="match-card" style="background: var(--card-bg); border: 1px solid rgba(255,215,0,0.2); border-radius: 12px; width: 180px; overflow: hidden;">
+                            <div class="match-team p-3" style="border-bottom: 1px solid rgba(255,215,0,0.1); color: #ccc;">TBD</div>
+                            <div class="match-team p-3" style="color: #ccc;">TBD</div>
+                        </div>
+                    </div>
+                    <div class="bracket-match my-2">
+                        <div class="match-card" style="background: var(--card-bg); border: 1px solid rgba(255,215,0,0.2); border-radius: 12px; width: 180px; overflow: hidden;">
+                            <div class="match-team p-3" style="border-bottom: 1px solid rgba(255,215,0,0.1); color: #ccc;">TBD</div>
+                            <div class="match-team p-3" style="color: #ccc;">TBD</div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Quarter Finals -->
                 <div class="bracket-round d-flex flex-column justify-content-center mx-3">
                     <div class="round-title text-center mb-3" style="color: #888; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px;">รอบ 8 ทีม</div>
-                    <% for(let i=0; i < 2; i++) { %>
-                        <div class="bracket-match my-4">
-                            <div class="match-card" style="background: var(--card-bg); border: 1px solid rgba(255,215,0,0.2); border-radius: 12px; width: 180px; overflow: hidden;">
-                                <div class="match-team p-3" style="border-bottom: 1px solid rgba(255,215,0,0.1); color: #ccc;">TBD</div>
-                                <div class="match-team p-3" style="color: #ccc;">TBD</div>
-                            </div>
+                    <div class="bracket-match my-4">
+                        <div class="match-card" style="background: var(--card-bg); border: 1px solid rgba(255,215,0,0.2); border-radius: 12px; width: 180px; overflow: hidden;">
+                            <div class="match-team p-3" style="border-bottom: 1px solid rgba(255,215,0,0.1); color: #ccc;">TBD</div>
+                            <div class="match-team p-3" style="color: #ccc;">TBD</div>
                         </div>
-                        <% } %>
+                    </div>
+                    <div class="bracket-match my-4">
+                        <div class="match-card" style="background: var(--card-bg); border: 1px solid rgba(255,215,0,0.2); border-radius: 12px; width: 180px; overflow: hidden;">
+                            <div class="match-team p-3" style="border-bottom: 1px solid rgba(255,215,0,0.1); color: #ccc;">TBD</div>
+                            <div class="match-team p-3" style="color: #ccc;">TBD</div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Semi Finals -->
@@ -178,72 +125,3 @@
         </div>
     </div>
 </section>
-
-<style>
-    .filter-btn {
-        background: rgba(255, 215, 0, 0.1);
-        border: 2px solid rgba(255, 215, 0, 0.3);
-        color: var(--primary-gold);
-        padding: 12px 25px;
-        border-radius: 12px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-
-    .filter-btn:hover,
-    .filter-btn.active {
-        background: var(--primary-gold);
-        color: #000;
-        border-color: var(--primary-gold);
-    }
-
-    .team-status {
-        display: inline-flex;
-        align-items: center;
-        padding: 8px 15px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 500;
-        margin-top: 10px;
-    }
-
-    .status-confirmed {
-        background: rgba(40, 167, 69, 0.2);
-        color: #28a745;
-        border: 1px solid rgba(40, 167, 69, 0.3);
-    }
-
-    .status-pending {
-        background: rgba(255, 193, 7, 0.2);
-        color: #ffc107;
-        border: 1px solid rgba(255, 193, 7, 0.3);
-    }
-</style>
-
-<script>
-    // Simple filter functionality
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-
-            const filter = this.dataset.filter;
-            document.querySelectorAll('.team-item').forEach(item => {
-                if (filter === 'all' || item.dataset.status === filter) {
-                    item.style.display = 'block';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        });
-    });
-
-    // Search functionality
-    document.getElementById('searchTeams').addEventListener('input', function () {
-        const searchTerm = this.value.toLowerCase();
-        document.querySelectorAll('.team-item').forEach(item => {
-            const text = item.textContent.toLowerCase();
-            item.style.display = text.includes(searchTerm) ? 'block' : 'none';
-        });
-    });
-</script>
