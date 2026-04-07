@@ -17,6 +17,8 @@ router.use((req, res) => {
   }
   res.status(404).render(path.join(__dirname, '../../views/page/404.ejs'), {
     layout: path.join(__dirname, '../../views/layouts/main.layout.ejs'),
+    title: 'ไม่พบหน้า',
+    active: ''
   });
 });
 
