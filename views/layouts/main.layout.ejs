@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="th">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>
+        <%= title %> - Arena of Arsha
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-trophy-fill me-2"></i>ARENA OF ARSHA
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link <%= active === 'rules' ? 'active' : '' %>" href="/rules">
+                            <i class="bi bi-journal-text me-1"></i> กติกา
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= active === 'register' ? 'active' : '' %>" href="/register">
+                            <i class="bi bi-person-plus me-1"></i> สมัครแข่ง
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= active === 'teams' ? 'active' : '' %>" href="/teams">
+                            <i class="bi bi-people me-1"></i> ตารางทีม
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link <%= active === 'live' ? 'active' : '' %>" href="/live">
+                            <i class="bi bi-broadcast me-1"></i> ถ่ายทอดสด
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <%- body %>
+
+        <!-- Footer -->
+        <footer>
+            <div class="container">
+                <div class="footer-links mb-3">
+                    <a href="/">หน้าแรก</a>
+                    <a href="/rules">กติกา</a>
+                    <a href="/register">สมัครแข่ง</a>
+                    <a href="/teams">ตารางทีม</a>
+                    <a href="/live">ถ่ายทอดสด</a>
+                </div>
+                <p class="text-muted mb-0">© 2024 Arena of Arsha Tournament. All Rights Reserved.</p>
+            </div>
+        </footer>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+        <% if (locals.scripts) { %>
+            <%- scripts %>
+                <% } %>
+</body>
+
+</html>

@@ -1,0 +1,146 @@
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="hero-content">
+        <div class="mb-4">
+            <span class="badge bg-warning text-dark fs-5 px-4 py-2">THE ALL RANDOM TOURNAMENT</span>
+        </div>
+        <h1 class="tournament-title">Arena of Arsha</h1>
+        <p class="subtitle">ชิงเงินรางวัลรวมมูลค่ากว่า</p>
+        <div class="prize-text">40,000 บาท</div>
+        <p class="subtitle">รูปแบบ 2v2 Team Battle | สุ่มอาชีพ | ระบบจับคู่แบบสุ่ม</p>
+
+        <div class="mt-5">
+            <a href="/register" class="btn btn-custom btn-lg">
+                <i class="bi bi-lightning-charge-fill me-2"></i>สมัครเข้าแข่งขันทันที
+            </a>
+            <a href="/rules" class="btn btn-outline-custom btn-lg">
+                <i class="bi bi-book me-2"></i>อ่านกติกา
+            </a>
+            <a href="https://discord.gg/aoatournament" target="_blank" class="btn btn-outline-custom btn-lg">
+                <i class="bi bi-discord me-2"></i>Discord
+            </a>
+        </div>
+
+        <div class="mt-5">
+            <a href="/live" class="live-badge text-decoration-none">
+                <span class="live-dot"></span>
+                รับชมการถ่ายทอดสด
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Info Section -->
+<section class="info-section py-5" style="background: rgba(0, 0, 0, 0.5);">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-3 col-sm-6">
+                <div class="info-card">
+                    <div class="info-icon"><i class="bi bi-people-fill"></i></div>
+                    <h3>2v2 Team</h3>
+                    <p>แข่งขันแบบทีม 2 คน ผู้เข้าแข่งต้องหาคู่ของตนเองมา</p>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="info-card">
+                    <div class="info-icon"><i class="bi bi-shuffle"></i></div>
+                    <h3>สุ่มอาชีพ</h3>
+                    <p>อาชีพถูกสุ่มโดยระบบของทีมงาน ผู้เข้าร่วมไม่สามารถเลือกได้</p>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="info-card">
+                    <div class="info-icon"><i class="bi bi-calendar-event"></i></div>
+                    <h3>วันแข่งขัน</h3>
+                    <p>วันที่ 00/00/0000 เวลา 00.00น. เป็นต้นไป</p>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6">
+                <div class="info-card">
+                    <div class="info-icon"><i class="bi bi-twitch"></i></div>
+                    <h3>ถ่ายทอดสด</h3>
+                    <p>รับชมการแข่งขันสดผ่าน Twitch: NHON_THESTAR</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Sponsor Section -->
+<section class="py-5 text-center" style="background: rgba(0, 0, 0, 0.3);">
+    <div class="container">
+        <p class="text-uppercase text-muted mb-4" style="letter-spacing: 3px; font-size: 0.9rem;">Sponsored By</p>
+        <div class="d-flex justify-content-center flex-wrap gap-4">
+            <span style="color: var(--primary-gold); font-weight: 600; font-size: 1.1rem;">WINJATHUSKY</span>
+            <span style="color: var(--primary-gold); font-weight: 600; font-size: 1.1rem;">GOTJI SHOP</span>
+            <span style="color: var(--primary-gold); font-weight: 600; font-size: 1.1rem;">MAY MAYLODY</span>
+            <span style="color: var(--primary-gold); font-weight: 600; font-size: 1.1rem;">SAOWALUCK</span>
+        </div>
+    </div>
+</section>
+
+<style>
+    .hero-section {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 120px 20px 80px;
+    }
+
+    .hero-content {
+        max-width: 900px;
+    }
+
+    .tournament-title {
+        font-size: 3rem;
+        font-weight: 700;
+        color: var(--primary-gold);
+        text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        margin-bottom: 1rem;
+        letter-spacing: 2px;
+    }
+
+    .prize-text {
+        font-size: 5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--primary-gold) 0%, #ffed4e 50%, var(--secondary-gold) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3));
+        margin: 1rem 0;
+        animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow {
+        from {
+            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3));
+        }
+
+        to {
+            filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.6));
+        }
+    }
+
+    .subtitle {
+        font-size: 1.5rem;
+        color: #ccc;
+        margin-bottom: 3rem;
+    }
+
+    @media (max-width: 768px) {
+        .tournament-title {
+            font-size: 2rem;
+        }
+
+        .prize-text {
+            font-size: 3rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+        }
+    }
+</style>

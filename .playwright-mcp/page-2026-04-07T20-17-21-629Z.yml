@@ -1,0 +1,36 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]: THE ALL RANDOM TOURNAMENT
+    - heading "Arena of Arsha" [level=1] [ref=e5]
+    - paragraph [ref=e6]: ชิงเงินรางวัลรวมมูลค่ากว่า
+    - generic [ref=e7]: 40,000 บาท
+    - paragraph [ref=e8]: รูปแบบ 2v2 Team Battle | สุ่มอาชีพ | ระบบจับคู่แบบสุ่ม
+    - generic [ref=e9]:
+      - link "สมัครเข้าแข่งขันทันที" [ref=e10] [cursor=pointer]:
+        - /url: /register
+        - text: สมัครเข้าแข่งขันทันที
+      - link "อ่านกติกา" [ref=e11] [cursor=pointer]:
+        - /url: /rules
+        - text: อ่านกติกา
+      - link "Discord" [ref=e12] [cursor=pointer]:
+        - /url: https://discord.gg/aoatournament
+        - text: Discord
+    - link "รับชมการถ่ายทอดสด" [ref=e14] [cursor=pointer]:
+      - /url: /live
+      - text: รับชมการถ่ายทอดสด
+  - generic [ref=e17]:
+    - generic [ref=e19]:
+      - heading "2v2 Team" [level=3] [ref=e20]
+      - paragraph [ref=e21]: แข่งขันแบบทีม 2 คน ผู้เข้าแข่งต้องหาคู่ของตนเองมา
+    - generic [ref=e23]:
+      - heading "สุ่มอาชีพ" [level=3] [ref=e24]
+      - paragraph [ref=e25]: อาชีพถูกสุ่มโดยระบบของทีมงาน ผู้เข้าร่วมไม่สามารถเลือกได้
+    - generic [ref=e27]:
+      - heading "วันแข่งขัน" [level=3] [ref=e28]
+      - paragraph [ref=e29]: วันที่ 00/00/0000 เวลา 00.00น. เป็นต้นไป
+    - generic [ref=e31]:
+      - heading "ถ่ายทอดสด" [level=3] [ref=e32]
+      - paragraph [ref=e33]: "รับชมการแข่งขันสดผ่าน Twitch: NHON_THESTAR"
+  - generic [ref=e35]:
+    - paragraph [ref=e36]: Sponsored By
+    - generic [ref=e37]: WINJATHUSKY GOTJI SHOP MAY MAYLODY SAOWALUCK

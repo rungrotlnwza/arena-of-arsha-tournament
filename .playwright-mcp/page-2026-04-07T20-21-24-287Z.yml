@@ -1,0 +1,88 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link " ARENA OF ARSHA" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e5]: 
+        - text: ARENA OF ARSHA
+      - list [ref=e7]:
+        - listitem [ref=e8]:
+          - link " กติกา" [ref=e9] [cursor=pointer]:
+            - /url: /rules
+            - generic [ref=e10]: 
+            - text: กติกา
+        - listitem [ref=e11]:
+          - link " สมัครแข่ง" [ref=e12] [cursor=pointer]:
+            - /url: /register
+            - generic [ref=e13]: 
+            - text: สมัครแข่ง
+        - listitem [ref=e14]:
+          - link " ตารางทีม" [ref=e15] [cursor=pointer]:
+            - /url: /teams
+            - generic [ref=e16]: 
+            - text: ตารางทีม
+        - listitem [ref=e17]:
+          - link " ถ่ายทอดสด" [ref=e18] [cursor=pointer]:
+            - /url: /live
+            - generic [ref=e19]: 
+            - text: ถ่ายทอดสด
+  - generic [ref=e21]:
+    - generic [ref=e23]: THE ALL RANDOM TOURNAMENT
+    - heading "Arena of Arsha" [level=1] [ref=e24]
+    - paragraph [ref=e25]: ชิงเงินรางวัลรวมมูลค่ากว่า
+    - generic [ref=e26]: 40,000 บาท
+    - paragraph [ref=e27]: รูปแบบ 2v2 Team Battle | สุ่มอาชีพ | ระบบจับคู่แบบสุ่ม
+    - generic [ref=e28]:
+      - link " สมัครเข้าแข่งขันทันที" [ref=e29] [cursor=pointer]:
+        - /url: /register
+        - generic [ref=e30]: 
+        - text: สมัครเข้าแข่งขันทันที
+      - link " อ่านกติกา" [ref=e31] [cursor=pointer]:
+        - /url: /rules
+        - generic [ref=e32]: 
+        - text: อ่านกติกา
+      - link " Discord" [ref=e33] [cursor=pointer]:
+        - /url: https://discord.gg/aoatournament
+        - generic [ref=e34]: 
+        - text: Discord
+    - link "รับชมการถ่ายทอดสด" [ref=e36] [cursor=pointer]:
+      - /url: /live
+      - text: รับชมการถ่ายทอดสด
+  - generic [ref=e40]:
+    - generic [ref=e42]:
+      - generic [ref=e44]: 
+      - heading "2v2 Team" [level=3] [ref=e45]
+      - paragraph [ref=e46]: แข่งขันแบบทีม 2 คน ผู้เข้าแข่งต้องหาคู่ของตนเองมา
+    - generic [ref=e48]:
+      - generic [ref=e50]: 
+      - heading "สุ่มอาชีพ" [level=3] [ref=e51]
+      - paragraph [ref=e52]: อาชีพถูกสุ่มโดยระบบของทีมงาน ผู้เข้าร่วมไม่สามารถเลือกได้
+    - generic [ref=e54]:
+      - generic [ref=e56]: 
+      - heading "วันแข่งขัน" [level=3] [ref=e57]
+      - paragraph [ref=e58]: วันที่ 00/00/0000 เวลา 00.00น. เป็นต้นไป
+    - generic [ref=e60]:
+      - generic [ref=e62]: 
+      - heading "ถ่ายทอดสด" [level=3] [ref=e63]
+      - paragraph [ref=e64]: "รับชมการแข่งขันสดผ่าน Twitch: NHON_THESTAR"
+  - generic [ref=e66]:
+    - paragraph [ref=e67]: Sponsored By
+    - generic [ref=e68]:
+      - generic [ref=e69]: WINJATHUSKY
+      - generic [ref=e70]: GOTJI SHOP
+      - generic [ref=e71]: MAY MAYLODY
+      - generic [ref=e72]: SAOWALUCK
+  - contentinfo [ref=e73]:
+    - generic [ref=e74]:
+      - generic [ref=e75]:
+        - link "หน้าแรก" [ref=e76] [cursor=pointer]:
+          - /url: /
+        - link "กติกา" [ref=e77] [cursor=pointer]:
+          - /url: /rules
+        - link "สมัครแข่ง" [ref=e78] [cursor=pointer]:
+          - /url: /register
+        - link "ตารางทีม" [ref=e79] [cursor=pointer]:
+          - /url: /teams
+        - link "ถ่ายทอดสด" [ref=e80] [cursor=pointer]:
+          - /url: /live
+      - paragraph [ref=e81]: © 2024 Arena of Arsha Tournament. All Rights Reserved.

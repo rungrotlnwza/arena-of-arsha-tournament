@@ -1,0 +1,23 @@
+<!-- Success Section -->
+<section class="py-5" style="min-height: 80vh; display: flex; align-items: center; justify-content: center;">
+    <div class="container text-center">
+        <div class="success-card mx-auto" style="max-width: 600px; background: var(--card-bg); border: 2px solid var(--primary-gold); border-radius: 25px; padding: 60px 40px;">
+            <i class="bi bi-check-circle-fill" style="font-size: 5rem; color: var(--primary-gold);"></i>
+            <h2 class="mt-4 mb-3" style="color: var(--primary-gold); font-weight: 700;">สมัครสำเร็จ!</h2>
+            <p class="mb-4" style="color: #ccc; font-size: 1.1rem;">
+                ทีม <strong style="color: var(--primary-gold);">
+                    <%= teamName %>
+                </strong> ได้ลงทะเบียนเข้าร่วมการแข่งขันเรียบร้อยแล้ว<br>
+                โปรดติดตามประกาศรายชื่อทีมและอาชีพที่สุ่มได้ในภายหลัง
+            </p>
+            <div class="d-flex flex-wrap justify-content-center gap-3">
+                <a href="/teams" class="btn btn-custom">
+                    <i class="bi bi-people-fill me-2"></i>ดูตารางทีม
+                </a>
+                <a href="/" class="btn btn-outline-custom">
+                    <i class="bi bi-house-fill me-2"></i>กลับหน้าแรก
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
