@@ -178,7 +178,7 @@
 
     <script>
         function logout() {
-            fetch('/api/admin/logout', { method: 'POST' })
+            fetch('/api/admin/logout', { method: 'POST', credentials: 'include' })
                 .then(() => window.location.href = '/admin/login');
         }
     </script>

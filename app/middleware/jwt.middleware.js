@@ -9,9 +9,19 @@ function getToken(req) {
   return req.cookies?.token ?? null;
 }
 
+function getLoginRedirect(req) {
+  return req.loginRedirect || '/auth/login';
+}
+
 module.exports = {
   verify: (token) => jwt.verify(token, secret),
   getToken,
+  isRevoked: (token) => blacklist.has(token),
+  revokeToken: (token) => {
+    if (token) {
+      blacklist.add(token);
+    }
+  },
 
   authenticate: (req, res, next) => {
     const token = getToken(req);
@@ -27,21 +37,21 @@ module.exports = {
 
   verifyToken: (req, res, next) => {
     const token = req.cookies?.token;
-    if (!token) return res.redirect('/auth/login');
-    if (blacklist.has(token)) return res.redirect('/auth/login');
+    if (!token) return res.redirect(getLoginRedirect(req));
+    if (blacklist.has(token)) return res.redirect(getLoginRedirect(req));
     try {
       req.user = jwt.verify(token, secret);
       next();
     } catch (err) {
-      return res.redirect('/auth/login');
+      return res.redirect(getLoginRedirect(req));
     }
   },
 
   requireRole: (roles) => {
     const allowedRoles = Array.isArray(roles) ? roles : [roles];
     return (req, res, next) => {
-      if (!req.user) return res.redirect('/auth/login');
-      if (!allowedRoles.includes(req.user.role)) return res.redirect('/auth/login');
+      if (!req.user) return res.redirect(getLoginRedirect(req));
+      if (!allowedRoles.includes(req.user.role)) return res.redirect(getLoginRedirect(req));
       next();
     };
   },

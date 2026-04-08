@@ -82,8 +82,8 @@ module.exports = {
     try {
       const [teams] = await mysqli.query(
         `SELECT t.id, t.team_name, t.created_at,
-                p1.full_name as player1_name, p1.bdo_name as player1_bdo, p1.family_name as player1_family,
-                p2.full_name as player2_name, p2.bdo_name as player2_bdo, p2.family_name as player2_family
+                p1.family_name as player1_name, p1.bdo_name as player1_bdo, p1.family_name as player1_family, p1.discord_id as player1_discord,
+                p2.family_name as player2_name, p2.bdo_name as player2_bdo, p2.family_name as player2_family, p2.discord_id as player2_discord
          FROM teams t
          LEFT JOIN players p1 ON t.id = p1.team_id AND p1.player_order = 1
          LEFT JOIN players p2 ON t.id = p2.team_id AND p2.player_order = 2
@@ -109,6 +109,10 @@ module.exports = {
   // ดึงตารางแข่งขัน
   getBracket: async (req, res) => {
     try {
+      const [maxTeamsRow] = await mysqli.query(
+        'SELECT config_value FROM config WHERE config_key = ?',
+        ['max_teams']
+      );
       const [matches] = await mysqli.query(
         `SELECT b.*,
                 t1.team_name as team1_name,
@@ -146,9 +150,15 @@ module.exports = {
         rounds[match.round].push(match);
       });
 
+      const parsedMaxTeams = parseInt(maxTeamsRow[0]?.config_value || '32', 10);
+      const maxTeams = Number.isNaN(parsedMaxTeams) || parsedMaxTeams < 1 ? 32 : parsedMaxTeams;
+
       res.json({
         success: true,
-        data: rounds
+        data: rounds,
+        meta: {
+          initial_round_1_match_count: Math.max(1, Math.ceil(maxTeams / 2))
+        }
       });
 
     } catch (error) {

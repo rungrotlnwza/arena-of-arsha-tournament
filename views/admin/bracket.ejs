@@ -4,8 +4,8 @@
         <i class="bi bi-diagram-3 me-2"></i>ตารางแข่งขัน
     </h4>
     <div class="d-flex gap-2">
-        <button class="btn btn-admin-outline btn-sm" onclick="loadBracket()">
-            <i class="bi bi-arrow-clockwise me-1"></i>รีเฟรช
+        <button class="btn btn-admin-outline btn-sm" onclick="resetBracket()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>รีเซ็ตการจับคู่
         </button>
         <button class="btn btn-admin btn-sm" onclick="generateBracket()">
             <i class="bi bi-magic me-1"></i>สร้างตารางอัตโนมัติ
@@ -39,7 +39,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">ทีมที่ 1</label>
-                    <select class="form-select bg-dark text-light" id="team1Id">
+                    <select class="form-select bg-light text-light" id="team1Id">
                         <option value="">-- ว่าง --</option>
                     </select>
                 </div>
@@ -97,7 +97,7 @@
     const boardConfig = {
         headerHeight: 94,
         cardWidth: 340,
-        cardHeight: 336,
+        cardHeight: 388,
         columnGap: 140,
         rowGap: 36,
         paddingLeft: 8,
@@ -107,6 +107,7 @@
 
     let teamsList = [];
     let bracketData = [];
+    let initialRoundMatchCount = 0;
 
     enableGrabScroll(document.querySelector('.bracket-admin-card'));
 
@@ -116,6 +117,9 @@
             if (result.success) {
                 teamsList = result.data || [];
                 populateTeamSelects();
+                if (bracketData.length || initialRoundMatchCount) {
+                    renderCurrentBracket();
+                }
             }
         }, () => {
             teamsList = [];
@@ -135,6 +139,7 @@
                 }
 
                 bracketData = result.data || [];
+                initialRoundMatchCount = result.meta?.initial_round_1_match_count || 0;
                 sortBracketMatches(bracketData);
                 renderCurrentBracket();
             }, () => {
@@ -173,7 +178,7 @@
         `;
     }
 
-    function buildRoundStructure(matches) {
+    function buildRoundStructure(matches, fallbackFirstRoundMatchCount) {
         const grouped = {};
 
         matches.forEach(match => {
@@ -197,12 +202,27 @@
             }));
         }
 
-        return getOrderedRoundKeys(grouped).map(roundKey => ({
-            key: roundKey,
-            label: getRoundLabel(roundKey, grouped[roundKey].length),
-            matchCount: grouped[roundKey].length,
-            slots: fillMatchSlots(grouped[roundKey], grouped[roundKey].length)
-        }));
+        const orderedRoundKeys = getOrderedRoundKeys(grouped);
+
+        if (orderedRoundKeys.length) {
+            return orderedRoundKeys.map(roundKey => ({
+                key: roundKey,
+                label: getRoundLabel(roundKey, grouped[roundKey].length),
+                matchCount: grouped[roundKey].length,
+                slots: fillMatchSlots(grouped[roundKey], grouped[roundKey].length)
+            }));
+        }
+
+        if (fallbackFirstRoundMatchCount) {
+            return buildRoundSequence(fallbackFirstRoundMatchCount).map(round => ({
+                key: round.key,
+                label: getRoundLabel(round.key, round.matchCount),
+                matchCount: round.matchCount,
+                slots: fillMatchSlots([], round.matchCount)
+            }));
+        }
+
+        return [];
     }
 
     function getOrderedRoundKeys(grouped) {
@@ -331,12 +351,7 @@
     }
 
     function renderCurrentBracket() {
-        if (!bracketData.length) {
-            renderState('empty');
-            return;
-        }
-
-        const rounds = buildRoundStructure(bracketData);
+        const rounds = buildRoundStructure(bracketData, initialRoundMatchCount);
 
         if (!rounds.length) {
             renderState('empty');
@@ -377,6 +392,9 @@
         const top = centerY - (boardConfig.cardHeight / 2);
         const advanceText = getAdvanceText(roundIndex, slot.matchNumber, rounds);
         const slotKey = `${roundKey}-${slot.matchNumber}`;
+        const emptyMessage = roundIndex === 0
+            ? 'เลือกทีมจาก dropdown เพื่อเริ่มจับคู่รอบแรก'
+            : 'เลือกทีมจาก dropdown เพื่อสร้างคู่นี้';
 
         if (!slot.match) {
             return `
@@ -387,13 +405,19 @@
                     </div>
                     <div class="match-body">
                         <div class="team-row is-tbd">
-                            <span>TBD</span>
+                            <select class="team-select" onchange="selectSlotTeam('${roundKey}', ${slot.matchNumber}, 'team1_id', this.value)">
+                                ${buildInlineTeamOptions('', '')}
+                            </select>
+                            <span class="team-row-spacer"></span>
                         </div>
                         <div class="team-row is-tbd">
-                            <span>TBD</span>
+                            <select class="team-select" onchange="selectSlotTeam('${roundKey}', ${slot.matchNumber}, 'team2_id', this.value)">
+                                ${buildInlineTeamOptions('', '')}
+                            </select>
+                            <span class="team-row-spacer"></span>
                         </div>
                     </div>
-                    <div class="match-meta is-empty">รอผลจากรอบก่อนหน้า</div>
+                    <div class="match-meta is-empty">${emptyMessage}</div>
                     <div class="advance-hint">${escapeHtml(advanceText)}</div>
                     <div class="admin-action-grid">
                         <button type="button" class="match-action-btn" disabled>รอผลจากรอบก่อน</button>
@@ -455,12 +479,16 @@
                 </div>
                 <div class="match-body">
                     <div class="team-row ${isWinner1 ? 'is-winner' : ''} ${!match.team1_id ? 'is-tbd' : ''}">
-                        <span>${escapeHtml(match.team1_name || 'TBD')}</span>
-                        ${isWinner1 ? '<i class="bi bi-trophy-fill"></i>' : ''}
+                        <select class="team-select" onchange="selectMatchTeam(${match.id}, 'team1_id', this.value)">
+                            ${buildInlineTeamOptions(match.team1_id, match.team2_id)}
+                        </select>
+                        ${isWinner1 ? '<i class="bi bi-trophy-fill"></i>' : '<span class="team-row-spacer"></span>'}
                     </div>
                     <div class="team-row ${isWinner2 ? 'is-winner' : ''} ${!match.team2_id ? 'is-tbd' : ''}">
-                        <span>${escapeHtml(match.team2_name || 'TBD')}</span>
-                        ${isWinner2 ? '<i class="bi bi-trophy-fill"></i>' : ''}
+                        <select class="team-select" onchange="selectMatchTeam(${match.id}, 'team2_id', this.value)">
+                            ${buildInlineTeamOptions(match.team2_id, match.team1_id)}
+                        </select>
+                        ${isWinner2 ? '<i class="bi bi-trophy-fill"></i>' : '<span class="team-row-spacer"></span>'}
                     </div>
                 </div>
                 <div class="match-meta ${meta.length ? '' : 'is-empty'}">
@@ -569,9 +597,40 @@
         document.getElementById('team2Id').innerHTML = '<option value="">-- ว่าง --</option>' + options;
     }
 
+    function buildInlineTeamOptions(selectedId, excludedId) {
+        const selectedValue = selectedId ? String(selectedId) : '';
+        const excludedValue = excludedId ? String(excludedId) : '';
+        let options = '<option value="">-- ว่าง --</option>';
+
+        teamsList.forEach(team => {
+            const teamId = String(team.id);
+
+            if (excludedValue && teamId === excludedValue && teamId !== selectedValue) {
+                return;
+            }
+
+            options += `<option value="${teamId}" ${teamId === selectedValue ? 'selected' : ''}>${escapeHtml(team.team_name)}</option>`;
+        });
+
+        return options;
+    }
+
     function getExistingRoundMatchCount(roundKey) {
         const matchesInRound = bracketData.filter(match => match.round === roundKey).length;
-        return matchesInRound || 1;
+
+        if (matchesInRound) {
+            return matchesInRound;
+        }
+
+        if (initialRoundMatchCount) {
+            const round = buildRoundSequence(initialRoundMatchCount).find(item => item.key === roundKey);
+
+            if (round) {
+                return round.matchCount;
+            }
+        }
+
+        return 1;
     }
 
     function getExpectedRoundMatchCount(roundKey) {
@@ -587,6 +646,10 @@
 
     function getMatchById(matchId) {
         return bracketData.find(match => match.id === matchId);
+    }
+
+    function getMatchBySlot(roundKey, matchNumber) {
+        return bracketData.find(match => match.round === roundKey && match.match_number === matchNumber);
     }
 
     function sortBracketMatches(matches) {
@@ -626,7 +689,7 @@
             return;
         }
 
-        const rounds = buildRoundStructure(bracketData);
+        const rounds = buildRoundStructure(bracketData, initialRoundMatchCount);
 
         if (!rounds.length) {
             renderState('empty');
@@ -700,6 +763,104 @@
         }
 
         patchBracketDom(data.updated_matches || [], deletedMatchId);
+    }
+
+    function buildTeamSelectionOverrides(matchLike, teamField, value) {
+        const selectedTeamId = value ? parseInt(value, 10) : null;
+        const overrides = {
+            team1_id: teamField === 'team1_id' ? selectedTeamId : (matchLike.team1_id || null),
+            team2_id: teamField === 'team2_id' ? selectedTeamId : (matchLike.team2_id || null)
+        };
+
+        if (overrides.team1_id && overrides.team2_id && overrides.team1_id === overrides.team2_id) {
+            if (teamField === 'team1_id') {
+                overrides.team2_id = null;
+            } else {
+                overrides.team1_id = null;
+            }
+        }
+
+        if (matchLike.winner_id && matchLike.winner_id !== overrides.team1_id && matchLike.winner_id !== overrides.team2_id) {
+            overrides.winner_id = null;
+        }
+
+        const nextWinnerId = Object.prototype.hasOwnProperty.call(overrides, 'winner_id')
+            ? overrides.winner_id
+            : (matchLike.winner_id || null);
+
+        if ((matchLike.team1_id || null) === (overrides.team1_id || null)
+            && (matchLike.team2_id || null) === (overrides.team2_id || null)
+            && (matchLike.winner_id || null) === nextWinnerId) {
+            return null;
+        }
+
+        return overrides;
+    }
+
+    function submitNewMatch(roundKey, matchNumber, overrides) {
+        fetch('/api/admin/bracket/new', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                round: roundKey,
+                match_number: matchNumber,
+                team1_id: null,
+                team2_id: null,
+                winner_id: null,
+                status: 'pending',
+                match_time: null,
+                stream_url: '',
+                notes: '',
+                ...overrides
+            })
+        }).then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    applyBracketChanges(result.data);
+                } else {
+                    alert(result.message || 'เกิดข้อผิดพลาด');
+                }
+            }, () => {
+                alert('บันทึกข้อมูลคู่แข่งขันไม่สำเร็จ');
+            });
+    }
+
+    function selectMatchTeam(matchId, teamField, value) {
+        const match = getMatchById(matchId);
+
+        if (!match) {
+            return;
+        }
+
+        const overrides = buildTeamSelectionOverrides(match, teamField, value);
+
+        if (!overrides) {
+            return;
+        }
+
+        submitMatchUpdate(matchId, overrides);
+    }
+
+    function selectSlotTeam(roundKey, matchNumber, teamField, value) {
+        const existingMatch = getMatchBySlot(roundKey, matchNumber);
+
+        if (existingMatch) {
+            selectMatchTeam(existingMatch.id, teamField, value);
+            return;
+        }
+
+        const overrides = buildTeamSelectionOverrides({
+            team1_id: null,
+            team2_id: null,
+            winner_id: null
+        }, teamField, value);
+
+        if (!overrides) {
+            return;
+        }
+
+        submitNewMatch(roundKey, matchNumber, overrides);
     }
 
     function enableGrabScroll(viewport) {
@@ -962,6 +1123,26 @@
             });
     }
 
+    function resetBracket() {
+        if (!confirm('รีเซ็ตการจับคู่ทั้งหมดใช่ไหม? ระบบจะลบ bracket ทุกคู่เพื่อให้จัดสายใหม่ได้ โดยจะไม่ลบผู้สมัครหรือรายชื่อทีม')) {
+            return;
+        }
+
+        fetch('/api/admin/bracket/reset', {
+            method: 'POST',
+            credentials: 'include'
+        }).then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    applyBracketChanges(result.data);
+                } else {
+                    alert(result.message || 'เกิดข้อผิดพลาด');
+                }
+            }, () => {
+                alert('รีเซ็ตการจับคู่ไม่สำเร็จ');
+            });
+    }
+
     function escapeHtml(value) {
         return String(value)
             .replace(/&/g, '&amp;')
@@ -1053,7 +1234,7 @@
     .match-card {
         position: absolute;
         width: 340px;
-        height: 336px;
+        height: 388px;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -1073,7 +1254,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 14px 16px;
+        padding: 12px 14px;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         background: rgba(255, 215, 0, 0.06);
     }
@@ -1119,15 +1300,15 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        min-height: 56px;
-        padding: 15px 16px;
+        gap: 10px;
+        min-height: 50px;
+        padding: 12px 14px;
         color: #f8f9fa;
-        font-size: 15px;
+        font-size: 13px;
         font-weight: 600;
     }
 
-    .team-row + .team-row {
+    .team-row+.team-row {
         border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
 
@@ -1147,14 +1328,42 @@
         flex-shrink: 0;
     }
 
+    .team-select {
+        width: 100%;
+        padding: 7px 9px;
+        border: 1px solid rgba(255, 215, 0, 0.18);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.06);
+        color: inherit;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .team-select:focus {
+        outline: none;
+        border-color: rgba(255, 215, 0, 0.46);
+        box-shadow: 0 0 0 0.2rem rgba(255, 215, 0, 0.08);
+    }
+
+    .team-select option {
+        color: #111;
+    }
+
+    .team-row-spacer {
+        width: 13px;
+        height: 13px;
+        flex-shrink: 0;
+        opacity: 0;
+    }
+
     .match-meta {
         display: flex;
         flex-wrap: wrap;
         align-content: flex-start;
-        gap: 10px 12px;
-        min-height: 68px;
-        max-height: 68px;
-        padding: 12px 16px 14px;
+        gap: 8px 10px;
+        min-height: 58px;
+        max-height: 58px;
+        padding: 10px 14px 12px;
         border-top: 1px solid rgba(255, 255, 255, 0.08);
         background: rgba(0, 0, 0, 0.12);
         overflow: hidden;
@@ -1181,17 +1390,17 @@
     }
 
     .advance-hint {
-        min-height: 40px;
-        padding: 12px 16px 0;
+        min-height: 34px;
+        padding: 10px 14px 0;
         color: rgba(255, 215, 97, 0.82);
-        font-size: 12px;
+        font-size: 11px;
     }
 
     .admin-action-grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-        padding: 12px 16px;
+        gap: 8px;
+        padding: 10px 14px;
     }
 
     .match-action-btn {
@@ -1199,9 +1408,9 @@
         border-radius: 12px;
         background: rgba(255, 215, 0, 0.08);
         color: #ffd761;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 700;
-        padding: 10px 12px;
+        padding: 8px 10px;
         transition: all 0.2s ease;
     }
 
@@ -1218,9 +1427,9 @@
 
     .admin-tool-row {
         display: flex;
-        gap: 8px;
+        gap: 6px;
         margin-top: auto;
-        padding: 0 16px 16px;
+        padding: 0 14px 14px;
     }
 
     .tool-btn {
@@ -1229,8 +1438,8 @@
         border-radius: 10px;
         background: rgba(255, 255, 255, 0.04);
         color: rgba(255, 255, 255, 0.78);
-        font-size: 12px;
-        padding: 8px 10px;
+        font-size: 11px;
+        padding: 7px 9px;
         transition: all 0.2s ease;
     }
 
@@ -1294,13 +1503,3 @@
         .bracket-admin-card {
             padding: 18px;
         }
-
-        .admin-action-grid {
-            grid-template-columns: minmax(0, 1fr);
-        }
-
-        .admin-tool-row {
-            flex-direction: column;
-        }
-    }
-</style>

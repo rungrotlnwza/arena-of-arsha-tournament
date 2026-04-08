@@ -79,7 +79,7 @@ module.exports = {
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
         
-        if (!player.full_name || !player.discord_id || !player.bdo_name || !player.family_name) {
+        if (!player.discord_id || !player.bdo_name || !player.family_name) {
           await conn.rollback();
           return res.status(400).json({
             success: false,
@@ -92,7 +92,7 @@ module.exports = {
            VALUES (?, ?, ?, ?, ?, ?)`,
           [
             teamId,
-            player.full_name,
+            player.family_name,
             player.discord_id,
             player.bdo_name,
             player.family_name,

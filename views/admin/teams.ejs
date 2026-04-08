@@ -95,8 +95,8 @@
                     <tr>
                         <td>${index + 1}</td>
                         <td><strong>${escapeHtml(team.team_name)}</strong></td>
-                        <td>${escapeHtml(team.player1_name || '-')}</td>
-                        <td>${escapeHtml(team.player2_name || '-')}</td>
+                        <td>${escapeHtml(team.player1_name || '-')}<br><small class="text-muted">${escapeHtml(team.player1_bdo || '-')} | ${escapeHtml(team.player1_discord || '-')}</small></td>
+                        <td>${escapeHtml(team.player2_name || '-')}<br><small class="text-muted">${escapeHtml(team.player2_bdo || '-')} | ${escapeHtml(team.player2_discord || '-')}</small></td>
                         <td><span class="status-badge status-${team.status}">${getStatusText(team.status)}</span></td>
                         <td>
                             <button class="btn btn-sm btn-admin-outline" onclick="showTeamDetail(${team.id})">
@@ -129,10 +129,9 @@
                 <div class="col-md-6">
                     <h6 style="color: var(--primary-gold);">ผู้เล่น 1</h6>
                     <table class="table table-dark table-sm">
-                        <tr><td>ชื่อ</td><td>${escapeHtml(team.player1_name || '-')}</td></tr>
-                        <tr><td>Discord</td><td>${escapeHtml(team.player1_discord || '-')}</td></tr>
-                        <tr><td>BDO Name</td><td>${escapeHtml(team.player1_bdo || '-')}</td></tr>
-                        <tr><td>Family</td><td>${escapeHtml(team.player1_family || '-')}</td></tr>
+                        <tr><td>Family Name</td><td>${escapeHtml(team.player1_family || '-')}</td></tr>
+                        <tr><td>ชื่อตัวละครในเกม</td><td>${escapeHtml(team.player1_bdo || '-')}</td></tr>
+                        <tr><td>Discord ID</td><td>${escapeHtml(team.player1_discord || '-')}</td></tr>
                     </table>
                 </div>
             </div>
@@ -140,10 +139,9 @@
                 <div class="col-md-6">
                     <h6 style="color: var(--primary-gold);">ผู้เล่น 2</h6>
                     <table class="table table-dark table-sm">
-                        <tr><td>ชื่อ</td><td>${escapeHtml(team.player2_name || '-')}</td></tr>
-                        <tr><td>Discord</td><td>${escapeHtml(team.player2_discord || '-')}</td></tr>
-                        <tr><td>BDO Name</td><td>${escapeHtml(team.player2_bdo || '-')}</td></tr>
-                        <tr><td>Family</td><td>${escapeHtml(team.player2_family || '-')}</td></tr>
+                        <tr><td>Family Name</td><td>${escapeHtml(team.player2_family || '-')}</td></tr>
+                        <tr><td>ชื่อตัวละครในเกม</td><td>${escapeHtml(team.player2_bdo || '-')}</td></tr>
+                        <tr><td>Discord ID</td><td>${escapeHtml(team.player2_discord || '-')}</td></tr>
                     </table>
                 </div>
             </div>

@@ -45,7 +45,7 @@
                 return;
             }
 
-            const rounds = buildRoundStructure(result.data || {});
+            const rounds = buildRoundStructure(result.data || {}, result.meta?.initial_round_1_match_count || 0);
 
             if (!rounds.length) {
                 renderState('empty');
@@ -57,7 +57,7 @@
             renderState('error');
         });
 
-    function buildRoundStructure(roundsData) {
+    function buildRoundStructure(roundsData, fallbackFirstRoundMatchCount) {
         const grouped = {};
 
         preferredRounds.forEach(key => {
@@ -73,16 +73,25 @@
                 grouped[key] = roundsData[key].slice().sort((left, right) => (left.match_number || 0) - (right.match_number || 0));
             });
 
-        if (!grouped.round_1 || !grouped.round_1.length) {
-            return [];
+        if (grouped.round_1 && grouped.round_1.length) {
+            return buildRoundSequence(grouped.round_1.length).map(round => ({
+                key: round.key,
+                label: getRoundLabel(round.key, round.matchCount),
+                matchCount: round.matchCount,
+                slots: fillMatchSlots(grouped[round.key] || [], round.matchCount)
+            }));
         }
 
-        return buildRoundSequence(grouped.round_1.length).map(round => ({
-            key: round.key,
-            label: getRoundLabel(round.key, round.matchCount),
-            matchCount: round.matchCount,
-            slots: fillMatchSlots(grouped[round.key] || [], round.matchCount)
-        }));
+        if (fallbackFirstRoundMatchCount) {
+            return buildRoundSequence(fallbackFirstRoundMatchCount).map(round => ({
+                key: round.key,
+                label: getRoundLabel(round.key, round.matchCount),
+                matchCount: round.matchCount,
+                slots: fillMatchSlots([], round.matchCount)
+            }));
+        }
+
+        return [];
     }
 
     function buildRoundSequence(firstRoundMatchCount) {
@@ -243,7 +252,7 @@
             `;
 
             round.slots.forEach((slot, slotIndex) => {
-                html += createMatchCard(slot, layout.columns[roundIndex], layout.centers[roundIndex][slotIndex]);
+                html += createMatchCard(slot, layout.columns[roundIndex], layout.centers[roundIndex][slotIndex], roundIndex);
             });
         });
 
@@ -326,8 +335,9 @@
         });
     }
 
-    function createMatchCard(slot, left, centerY) {
+    function createMatchCard(slot, left, centerY, roundIndex) {
         const top = centerY - (boardConfig.cardHeight / 2);
+        const emptyMessage = roundIndex === 0 ? 'ยังไม่มีการจับคู่' : 'รอผลจากรอบก่อนหน้า';
 
         if (!slot.match) {
             return `
@@ -344,7 +354,7 @@
                             <span>TBD</span>
                         </div>
                     </div>
-                    <div class="match-meta is-empty">รอผลจากรอบก่อนหน้า</div>
+                    <div class="match-meta is-empty">${emptyMessage}</div>
                 </article>
             `;
         }

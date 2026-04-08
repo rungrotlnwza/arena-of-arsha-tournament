@@ -1,6 +1,12 @@
 const express = require('express');
 const path = require('path');
 const router = express.Router();
+const jwtMiddleware = require('../../middleware/jwt.middleware');
+
+const redirectAdminLogin = (req, res, next) => {
+    req.loginRedirect = '/admin/login';
+    next();
+};
 
 // Home
 router.get('/', (req, res) => {
@@ -74,16 +80,13 @@ router.get('/live', (req, res) => {
     });
 });
 
-// Admin Routes
-const { requireAuth } = require('../../middleware/admin.middleware');
-
 router.get('/admin/login', (req, res) => {
     res.render(path.join(__dirname, '../../../views/admin/login.ejs'), {
         layout: false
     });
 });
 
-router.get('/admin/dashboard', requireAuth, (req, res) => {
+router.get('/admin/dashboard', redirectAdminLogin, jwtMiddleware.verifyToken, jwtMiddleware.requireRole('admin'), (req, res) => {
     res.render(path.join(__dirname, '../../../views/admin/dashboard.ejs'), {
         layout: path.join(__dirname, '../../../views/layouts/admin.layout.ejs'),
         title: 'Dashboard',
@@ -91,7 +94,7 @@ router.get('/admin/dashboard', requireAuth, (req, res) => {
     });
 });
 
-router.get('/admin/teams', requireAuth, (req, res) => {
+router.get('/admin/teams', redirectAdminLogin, jwtMiddleware.verifyToken, jwtMiddleware.requireRole('admin'), (req, res) => {
     res.render(path.join(__dirname, '../../../views/admin/teams.ejs'), {
         layout: path.join(__dirname, '../../../views/layouts/admin.layout.ejs'),
         title: 'จัดการทีม',
@@ -99,7 +102,7 @@ router.get('/admin/teams', requireAuth, (req, res) => {
     });
 });
 
-router.get('/admin/settings', requireAuth, (req, res) => {
+router.get('/admin/settings', redirectAdminLogin, jwtMiddleware.verifyToken, jwtMiddleware.requireRole('admin'), (req, res) => {
     res.render(path.join(__dirname, '../../../views/admin/settings.ejs'), {
         layout: path.join(__dirname, '../../../views/layouts/admin.layout.ejs'),
         title: 'ตั้งค่า',
@@ -107,7 +110,7 @@ router.get('/admin/settings', requireAuth, (req, res) => {
     });
 });
 
-router.get('/admin/bracket', requireAuth, (req, res) => {
+router.get('/admin/bracket', redirectAdminLogin, jwtMiddleware.verifyToken, jwtMiddleware.requireRole('admin'), (req, res) => {
     res.render(path.join(__dirname, '../../../views/admin/bracket.ejs'), {
         layout: path.join(__dirname, '../../../views/layouts/admin.layout.ejs'),
         title: 'ตารางแข่งขัน',

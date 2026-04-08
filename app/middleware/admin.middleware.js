@@ -1,17 +1,19 @@
-// Middleware to check if admin is authenticated
+const jwtMiddleware = require('./jwt.middleware');
+
+const redirectAdminLogin = (req, res, next) => {
+  req.loginRedirect = '/admin/login';
+  next();
+};
+
 module.exports = {
-  requireAuth: (req, res, next) => {
-    if (req.session && req.session.adminId) {
-      next();
-    } else {
-      if (req.path.startsWith('/api/')) {
-        res.status(401).json({
-          success: false,
-          message: 'กรุณาเข้าสู่ระบบ'
-        });
-      } else {
-        res.redirect('/admin/login');
-      }
-    }
-  }
+  redirectAdminLogin,
+  requireAdminPage: [
+    redirectAdminLogin,
+    jwtMiddleware.verifyToken,
+    jwtMiddleware.requireRole('admin')
+  ],
+  requireAdminApi: [
+    jwtMiddleware.authenticate,
+    jwtMiddleware.requireRoleApi('admin')
+  ]
 };

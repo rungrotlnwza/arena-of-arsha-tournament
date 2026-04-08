@@ -76,32 +76,24 @@
                     <i class="bi bi-person-fill"></i> ข้อมูลผู้เล่น 1
                 </h3>
                 <div class="row">
-                    <div class="col-md-6 mb-4">
-                        <label for="player1Name" class="form-label">
-                            ชื่อ-นามสกุล <span class="required">*</span>
+                    <div class="col-md-4 mb-4">
+                        <label for="player1Family" class="form-label">
+                            Family Name <span class="required">*</span>
                         </label>
-                        <input type="text" class="form-control" id="player1Name" placeholder="ชื่อ นามสกุล" required>
+                        <input type="text" class="form-control" id="player1Family" placeholder="Family Name" required>
                     </div>
-                    <div class="col-md-6 mb-4">
+                    <div class="col-md-4 mb-4">
+                        <label for="player1BdoName" class="form-label">
+                            ชื่อตัวละครในเกม <span class="required">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="player1BdoName" placeholder="ชื่อตัวละคร" required>
+                    </div>
+                    <div class="col-md-4 mb-4">
                         <label for="player1Discord" class="form-label">
                             Discord ID <span class="required">*</span>
                         </label>
                         <input type="text" class="form-control" id="player1Discord" placeholder="example" required>
                         <div class="form-text">ไอดี Discord ไม่รวม # และตัวเลข</div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-4">
-                        <label for="player1BdoName" class="form-label">
-                            ชื่อตัวละครในเกม (BDO) <span class="required">*</span>
-                        </label>
-                        <input type="text" class="form-control" id="player1BdoName" placeholder="ชื่อตัวละคร" required>
-                    </div>
-                    <div class="col-md-6 mb-4">
-                        <label for="player1Family" class="form-label">
-                            Family Name <span class="required">*</span>
-                        </label>
-                        <input type="text" class="form-control" id="player1Family" placeholder="Family Name" required>
                     </div>
                 </div>
             </div>
@@ -112,32 +104,24 @@
                     <i class="bi bi-person-fill"></i> ข้อมูลผู้เล่น 2 (คู่ทีม)
                 </h3>
                 <div class="row">
-                    <div class="col-md-6 mb-4">
-                        <label for="player2Name" class="form-label">
-                            ชื่อ-นามสกุล <span class="required">*</span>
+                    <div class="col-md-4 mb-4">
+                        <label for="player2Family" class="form-label">
+                            Family Name <span class="required">*</span>
                         </label>
-                        <input type="text" class="form-control" id="player2Name" placeholder="ชื่อ นามสกุล" required>
+                        <input type="text" class="form-control" id="player2Family" placeholder="Family Name" required>
                     </div>
-                    <div class="col-md-6 mb-4">
+                    <div class="col-md-4 mb-4">
+                        <label for="player2BdoName" class="form-label">
+                            ชื่อตัวละครในเกม <span class="required">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="player2BdoName" placeholder="ชื่อตัวละคร" required>
+                    </div>
+                    <div class="col-md-4 mb-4">
                         <label for="player2Discord" class="form-label">
                             Discord ID <span class="required">*</span>
                         </label>
                         <input type="text" class="form-control" id="player2Discord" placeholder="example" required>
                         <div class="form-text">ไอดี Discord ไม่รวม # และตัวเลข</div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-4">
-                        <label for="player2BdoName" class="form-label">
-                            ชื่อตัวละครในเกม (BDO) <span class="required">*</span>
-                        </label>
-                        <input type="text" class="form-control" id="player2BdoName" placeholder="ชื่อตัวละคร" required>
-                    </div>
-                    <div class="col-md-6 mb-4">
-                        <label for="player2Family" class="form-label">
-                            Family Name <span class="required">*</span>
-                        </label>
-                        <input type="text" class="form-control" id="player2Family" placeholder="Family Name" required>
                     </div>
                 </div>
             </div>
@@ -272,16 +256,14 @@
             team_name: document.getElementById('teamName').value.trim(),
             players: [
                 {
-                    full_name: document.getElementById('player1Name').value.trim(),
-                    discord_id: document.getElementById('player1Discord').value.trim(),
+                    family_name: document.getElementById('player1Family').value.trim(),
                     bdo_name: document.getElementById('player1BdoName').value.trim(),
-                    family_name: document.getElementById('player1Family').value.trim()
+                    discord_id: document.getElementById('player1Discord').value.trim()
                 },
                 {
-                    full_name: document.getElementById('player2Name').value.trim(),
-                    discord_id: document.getElementById('player2Discord').value.trim(),
+                    family_name: document.getElementById('player2Family').value.trim(),
                     bdo_name: document.getElementById('player2BdoName').value.trim(),
-                    family_name: document.getElementById('player2Family').value.trim()
+                    discord_id: document.getElementById('player2Discord').value.trim()
                 }
             ],
             experience: document.getElementById('teamExperience').value.trim() || null,

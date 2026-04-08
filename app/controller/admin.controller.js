@@ -1,4 +1,17 @@
+const jwt = require('jsonwebtoken');
 const mysqli = require('../config/mysqli.config');
+const jwtMiddleware = require('../middleware/jwt.middleware');
+
+const adminTokenAgeMs = 24 * 60 * 60 * 1000;
+const adminTokenExpiresIn = '24h';
+const isSecureCookie = process.env.SECURE === 'production';
+
+const getAdminCookieOptions = () => ({
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: isSecureCookie,
+  maxAge: adminTokenAgeMs
+});
 
 const getRoundSortValue = (round) => {
   if (!round) {
@@ -258,9 +271,18 @@ module.exports = {
         });
       }
 
-      // Create session
-      req.session.adminId = admin.id;
-      req.session.adminName = admin.name;
+      const token = jwt.sign(
+        {
+          id: admin.id,
+          username: admin.username,
+          name: admin.name,
+          role: 'admin'
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: adminTokenExpiresIn }
+      );
+
+      res.cookie('token', token, getAdminCookieOptions());
 
       res.json({
         success: true,
@@ -281,19 +303,45 @@ module.exports = {
 
   // Logout
   logout: (req, res) => {
-    req.session.destroy();
+    const token = jwtMiddleware.getToken(req);
+    jwtMiddleware.revokeToken(token);
+    res.clearCookie('token', {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: isSecureCookie
+    });
     res.json({ success: true, message: 'ออกจากระบบสำเร็จ' });
   },
 
   // Check Auth Status
   checkAuth: (req, res) => {
-    if (req.session && req.session.adminId) {
+    const token = jwtMiddleware.getToken(req);
+
+    if (!token || jwtMiddleware.isRevoked(token)) {
+      res.json({
+        success: true,
+        isAuthenticated: false
+      });
+      return;
+    }
+
+    try {
+      const user = jwtMiddleware.verify(token);
+
+      if (user.role !== 'admin') {
+        res.json({
+          success: true,
+          isAuthenticated: false
+        });
+        return;
+      }
+
       res.json({
         success: true,
         isAuthenticated: true,
-        adminName: req.session.adminName
+        adminName: user.name || user.username || 'Admin'
       });
-    } else {
+    } catch (error) {
       res.json({
         success: true,
         isAuthenticated: false
@@ -331,8 +379,8 @@ module.exports = {
       // Recent teams (last 5)
       const [recentTeams] = await mysqli.query(
         `SELECT t.*, 
-                p1.full_name as player1_name, 
-                p2.full_name as player2_name
+                p1.family_name as player1_name, 
+                p2.family_name as player2_name
          FROM teams t
          LEFT JOIN players p1 ON t.id = p1.team_id AND p1.player_order = 1
          LEFT JOIN players p2 ON t.id = p2.team_id AND p2.player_order = 2
@@ -370,9 +418,9 @@ module.exports = {
       
       let sql = `
         SELECT t.*, 
-               p1.full_name as player1_name, p1.discord_id as player1_discord,
+               p1.family_name as player1_name, p1.discord_id as player1_discord,
                p1.bdo_name as player1_bdo, p1.family_name as player1_family,
-               p2.full_name as player2_name, p2.discord_id as player2_discord,
+               p2.family_name as player2_name, p2.discord_id as player2_discord,
                p2.bdo_name as player2_bdo, p2.family_name as player2_family
         FROM teams t
         LEFT JOIN players p1 ON t.id = p1.team_id AND p1.player_order = 1
@@ -488,11 +536,20 @@ module.exports = {
   // Get Bracket
   getBracket: async (req, res) => {
     try {
+      const [maxTeamsRow] = await mysqli.query(
+        'SELECT config_value FROM config WHERE config_key = ?',
+        ['max_teams']
+      );
       const matches = await getBracketMatches(mysqli);
+      const parsedMaxTeams = parseInt(maxTeamsRow[0]?.config_value || '32', 10);
+      const maxTeams = Number.isNaN(parsedMaxTeams) || parsedMaxTeams < 1 ? 32 : parsedMaxTeams;
 
       res.json({
         success: true,
-        data: matches
+        data: matches,
+        meta: {
+          initial_round_1_match_count: Math.max(1, Math.ceil(maxTeams / 2))
+        }
       });
 
     } catch (error) {
@@ -517,6 +574,7 @@ module.exports = {
       const streamUrl = normalizeBracketText(req.body.stream_url);
       const notes = normalizeBracketText(req.body.notes);
       const requestedRound = req.body.round;
+      const requestedMatchNumber = normalizeBracketId(req.body.match_number);
       const affectedMatchIds = new Set();
 
       await conn.beginTransaction();
@@ -525,30 +583,69 @@ module.exports = {
       let matchRecord = null;
 
       if (id === 'new') {
-        // Create new match - need to calculate round and match_number
-        const [lastMatch] = await conn.query(
-          'SELECT match_number FROM bracket WHERE round = ? ORDER BY match_number DESC LIMIT 1',
-          [requestedRound]
+        if (!requestedRound) {
+          await conn.rollback();
+          res.status(400).json({
+            success: false,
+            message: 'ไม่พบรอบการแข่งขัน'
+          });
+          return;
+        }
+
+        let nextMatchNumber = requestedMatchNumber;
+
+        if (!nextMatchNumber) {
+          const [lastMatch] = await conn.query(
+            'SELECT match_number FROM bracket WHERE round = ? ORDER BY match_number DESC LIMIT 1',
+            [requestedRound]
+          );
+          nextMatchNumber = (lastMatch[0]?.match_number || 0) + 1;
+        }
+
+        const [existingSlotRows] = await conn.query(
+          'SELECT * FROM bracket WHERE round = ? AND match_number = ? LIMIT 1',
+          [requestedRound, nextMatchNumber]
         );
-        const nextMatchNumber = (lastMatch[0]?.match_number || 0) + 1;
         const safeWinnerId = winnerId && (winnerId === team1Id || winnerId === team2Id) ? winnerId : null;
         const safeStatus = normalizeBracketStatus(req.body.status, safeWinnerId);
 
-        const [insertResult] = await conn.query(
-          `INSERT INTO bracket (round, match_number, team1_id, team2_id, winner_id, match_time, status, stream_url, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [requestedRound, nextMatchNumber, team1Id, team2Id, safeWinnerId, matchTime, safeStatus, streamUrl, notes]
-        );
+        if (existingSlotRows.length > 0) {
+          const existingMatch = existingSlotRows[0];
 
-        matchRecord = {
-          id: insertResult.insertId,
-          round: requestedRound,
-          match_number: nextMatchNumber,
-          team1_id: team1Id,
-          team2_id: team2Id,
-          winner_id: safeWinnerId,
-          status: safeStatus
-        };
+          await conn.query(
+            `UPDATE bracket 
+             SET team1_id = ?, team2_id = ?, winner_id = ?, match_time = ?, status = ?, stream_url = ?, notes = ?
+             WHERE id = ?`,
+            [team1Id, team2Id, safeWinnerId, matchTime, safeStatus, streamUrl, notes, existingMatch.id]
+          );
+
+          matchRecord = {
+            ...existingMatch,
+            id: existingMatch.id,
+            round: existingMatch.round,
+            match_number: existingMatch.match_number,
+            team1_id: team1Id,
+            team2_id: team2Id,
+            winner_id: safeWinnerId,
+            status: safeStatus
+          };
+        } else {
+          const [insertResult] = await conn.query(
+            `INSERT INTO bracket (round, match_number, team1_id, team2_id, winner_id, match_time, status, stream_url, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [requestedRound, nextMatchNumber, team1Id, team2Id, safeWinnerId, matchTime, safeStatus, streamUrl, notes]
+          );
+
+          matchRecord = {
+            id: insertResult.insertId,
+            round: requestedRound,
+            match_number: nextMatchNumber,
+            team1_id: team1Id,
+            team2_id: team2Id,
+            winner_id: safeWinnerId,
+            status: safeStatus
+          };
+        }
       } else {
         const [existingRows] = await conn.query(
           'SELECT * FROM bracket WHERE id = ? LIMIT 1',
@@ -658,6 +755,43 @@ module.exports = {
     } catch (error) {
       await conn.rollback();
       console.error('Delete bracket error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'เกิดข้อผิดพลาด'
+      });
+    } finally {
+      conn.release();
+    }
+  },
+
+  // Reset Bracket Pairings
+  resetBracket: async (req, res) => {
+    const conn = await mysqli.getConnection();
+    let hasTransaction = false;
+
+    try {
+      await conn.beginTransaction();
+      hasTransaction = true;
+      await conn.query('DELETE FROM bracket');
+
+      await conn.commit();
+      hasTransaction = false;
+      const matches = await getBracketMatches(conn);
+
+      res.json({
+        success: true,
+        message: 'รีเซ็ตการจับคู่ทั้งหมดสำเร็จ',
+        data: {
+          matches: matches
+        }
+      });
+
+    } catch (error) {
+      if (hasTransaction) {
+        await conn.rollback();
+      }
+
+      console.error('Reset bracket error:', error);
       res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาด'
