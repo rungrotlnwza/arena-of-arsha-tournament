@@ -43,6 +43,8 @@
             </div>
         </div>
 
+        <div id="capacityNotice" class="mb-4 p-3" style="display: none; border-radius: 10px;"></div>
+
         <!-- Info Box -->
         <div class="info-box mb-4">
             <h5><i class="bi bi-info-circle-fill me-2"></i>ก่อนสมัคร โปรดอ่าน</h5>
@@ -224,10 +226,35 @@
             const timeStr = config.tournament_time || '';
             document.getElementById('tournamentDate').textContent = dateStr + (timeStr ? ' ' + timeStr : '');
             document.getElementById('tournamentLocation').textContent = config.location || 'Online';
+            updateCapacityNotice(config);
+        }, () => {
+            document.getElementById('loadingState').style.display = 'none';
+            showClosedState();
         });
 
     function showClosedState() {
         document.getElementById('closedState').style.display = 'block';
+    }
+
+    function updateCapacityNotice(config) {
+        const capacityNotice = document.getElementById('capacityNotice');
+        const maxTeams = parseInt(config.max_teams || '32', 10);
+        const activeTeams = parseInt(config.active_teams || '0', 10);
+        const nextReservePosition = parseInt(config.next_reserve_position || '0', 10);
+
+        if (activeTeams >= maxTeams && nextReservePosition > 0) {
+            capacityNotice.style.display = 'block';
+            capacityNotice.style.background = 'rgba(255, 193, 7, 0.12)';
+            capacityNotice.style.border = '1px solid rgba(255, 193, 7, 0.45)';
+            capacityNotice.innerHTML = `
+                <h5 style="color: #ffd761; margin-bottom: 10px;">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>ทีมหลักครบแล้ว
+                </h5>
+                <p style="color: #ddd; margin-bottom: 0;">
+                    หากสมัครตอนนี้ ทีมของคุณจะถูกจัดเป็นทีมสำรองลำดับที่ <strong>${nextReservePosition}</strong>
+                </p>
+            `;
+        }
     }
 
     // Form submission
@@ -270,15 +297,20 @@
         .then(res => res.json())
         .then(result => {
             if (result.success) {
-                window.location.href = '/register-success?team=' + encodeURIComponent(data.team_name);
+                let successUrl = '/register-success?team=' + encodeURIComponent(result.data.team_name || data.team_name);
+
+                if (result.data && result.data.reserve_position) {
+                    successUrl += '&reserve=' + encodeURIComponent(result.data.reserve_position);
+                }
+
+                window.location.href = successUrl;
             } else {
                 errorDiv.textContent = result.message || 'เกิดข้อผิดพลาด';
                 errorDiv.style.display = 'block';
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="bi bi-send-fill me-2"></i> ยืนยันการสมัคร';
             }
-        })
-        .catch(() => {
+        }, () => {
             errorDiv.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
             errorDiv.style.display = 'block';
             submitBtn.disabled = false;

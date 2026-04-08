@@ -129,7 +129,36 @@ const getFirstRoundMatchCount = async (conn) => {
   return rows[0]?.match_count || 0;
 };
 
-const syncNextRoundMatch = async (conn, match, firstRoundMatchCount) => {
+const bracketSelectSql = `
+  SELECT b.*,
+         t1.team_name as team1_name,
+         t2.team_name as team2_name,
+         tw.team_name as winner_name
+  FROM bracket b
+  LEFT JOIN teams t1 ON b.team1_id = t1.id
+  LEFT JOIN teams t2 ON b.team2_id = t2.id
+  LEFT JOIN teams tw ON b.winner_id = tw.id
+`;
+
+const getBracketMatches = async (conn) => {
+  const [matches] = await conn.query(bracketSelectSql);
+  return sortBracketMatches(matches);
+};
+
+const getBracketMatchesByIds = async (conn, ids) => {
+  if (!ids.length) {
+    return [];
+  }
+
+  const [matches] = await conn.query(
+    `${bracketSelectSql} WHERE b.id IN (?)`,
+    [ids]
+  );
+
+  return sortBracketMatches(matches);
+};
+
+const syncNextRoundMatch = async (conn, match, firstRoundMatchCount, affectedMatchIds = new Set()) => {
   const nextRoundKey = getNextRoundKey(match.round, firstRoundMatchCount);
 
   if (!nextRoundKey) {
@@ -183,13 +212,15 @@ const syncNextRoundMatch = async (conn, match, firstRoundMatchCount) => {
     [nextTeam1Id, nextTeam2Id, nextWinnerId, nextStatus, nextRoundMatch.id]
   );
 
+  affectedMatchIds.add(nextRoundMatch.id);
+
   await syncNextRoundMatch(conn, {
     ...nextRoundMatch,
     team1_id: nextTeam1Id,
     team2_id: nextTeam2Id,
     winner_id: nextWinnerId,
     status: nextStatus
-  }, firstRoundMatchCount);
+  }, firstRoundMatchCount, affectedMatchIds);
 };
 
 module.exports = {
@@ -457,18 +488,7 @@ module.exports = {
   // Get Bracket
   getBracket: async (req, res) => {
     try {
-      const [matches] = await mysqli.query(
-        `SELECT b.*,
-                t1.team_name as team1_name,
-                t2.team_name as team2_name,
-                tw.team_name as winner_name
-         FROM bracket b
-         LEFT JOIN teams t1 ON b.team1_id = t1.id
-         LEFT JOIN teams t2 ON b.team2_id = t2.id
-         LEFT JOIN teams tw ON b.winner_id = tw.id`
-      );
-
-      sortBracketMatches(matches);
+      const matches = await getBracketMatches(mysqli);
 
       res.json({
         success: true,
@@ -497,6 +517,7 @@ module.exports = {
       const streamUrl = normalizeBracketText(req.body.stream_url);
       const notes = normalizeBracketText(req.body.notes);
       const requestedRound = req.body.round;
+      const affectedMatchIds = new Set();
 
       await conn.beginTransaction();
 
@@ -566,12 +587,17 @@ module.exports = {
         };
       }
 
-      await syncNextRoundMatch(conn, matchRecord, firstRoundMatchCount || matchRecord.match_number);
+      affectedMatchIds.add(matchRecord.id);
+      await syncNextRoundMatch(conn, matchRecord, firstRoundMatchCount || matchRecord.match_number, affectedMatchIds);
       await conn.commit();
+      const updatedMatches = await getBracketMatchesByIds(conn, Array.from(affectedMatchIds));
 
       res.json({
         success: true,
-        message: 'บันทึกสำเร็จ'
+        message: 'บันทึกสำเร็จ',
+        data: {
+          updated_matches: updatedMatches
+        }
       });
 
     } catch (error) {
@@ -609,18 +635,24 @@ module.exports = {
 
       const firstRoundMatchCount = await getFirstRoundMatchCount(conn);
       const match = matchRows[0];
+      const affectedMatchIds = new Set();
 
       await conn.query('DELETE FROM bracket WHERE id = ?', [id]);
       await syncNextRoundMatch(conn, {
         ...match,
         winner_id: null,
         status: 'pending'
-      }, firstRoundMatchCount);
+      }, firstRoundMatchCount, affectedMatchIds);
       await conn.commit();
+      const updatedMatches = await getBracketMatchesByIds(conn, Array.from(affectedMatchIds));
 
       res.json({
         success: true,
-        message: 'ลบสำเร็จ'
+        message: 'ลบสำเร็จ',
+        data: {
+          deleted_match_id: parseInt(id, 10),
+          updated_matches: updatedMatches
+        }
       });
 
     } catch (error) {
@@ -675,10 +707,14 @@ module.exports = {
       }
 
       await conn.commit();
+      const matches = await getBracketMatches(conn);
 
       res.json({
         success: true,
-        message: 'สร้างตารางแข่งขันสำเร็จ'
+        message: 'สร้างตารางแข่งขันสำเร็จ',
+        data: {
+          matches: matches
+        }
       });
 
     } catch (error) {

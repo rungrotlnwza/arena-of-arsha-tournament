@@ -86,20 +86,35 @@
 </div>
 
 <script>
+    const preferredRounds = ['round_1', 'round_2', 'quarter', 'semi', 'final'];
     const roundTextMap = {
+        round_1: 'รอบแรก',
+        round_2: 'รอบถัดไป',
         quarter: 'รอบ 8 ทีม',
         semi: 'รอบรองชนะเลิศ',
         final: 'รอบชิงชนะเลิศ'
+    };
+    const boardConfig = {
+        headerHeight: 94,
+        cardWidth: 340,
+        cardHeight: 336,
+        columnGap: 140,
+        rowGap: 36,
+        paddingLeft: 8,
+        paddingRight: 24,
+        paddingBottom: 24
     };
 
     let teamsList = [];
     let bracketData = [];
 
+    enableGrabScroll(document.querySelector('.bracket-admin-card'));
+
     fetch('/api/admin/teams?status=approved', { credentials: 'include', method: 'GET' })
         .then(res => res.json())
         .then(result => {
             if (result.success) {
-                teamsList = result.data;
+                teamsList = result.data || [];
                 populateTeamSelects();
             }
         }, () => {
@@ -120,13 +135,8 @@
                 }
 
                 bracketData = result.data || [];
-
-                if (!bracketData.length) {
-                    renderState('empty');
-                    return;
-                }
-
-                renderBracket(buildRoundStructure(bracketData));
+                sortBracketMatches(bracketData);
+                renderCurrentBracket();
             }, () => {
                 renderState('error');
             });
@@ -187,14 +197,21 @@
             }));
         }
 
-        return Object.keys(grouped)
-            .sort((left, right) => getRoundSortValue(left) - getRoundSortValue(right))
-            .map(roundKey => ({
-                key: roundKey,
-                label: getRoundLabel(roundKey, grouped[roundKey].length),
-                matchCount: grouped[roundKey].length,
-                slots: fillMatchSlots(grouped[roundKey], grouped[roundKey].length)
-            }));
+        return getOrderedRoundKeys(grouped).map(roundKey => ({
+            key: roundKey,
+            label: getRoundLabel(roundKey, grouped[roundKey].length),
+            matchCount: grouped[roundKey].length,
+            slots: fillMatchSlots(grouped[roundKey], grouped[roundKey].length)
+        }));
+    }
+
+    function getOrderedRoundKeys(grouped) {
+        const preferred = preferredRounds.filter(key => Array.isArray(grouped[key]) && grouped[key].length);
+        const extra = Object.keys(grouped)
+            .filter(key => !preferredRounds.includes(key) && Array.isArray(grouped[key]) && grouped[key].length)
+            .sort((left, right) => getRoundSortValue(left) - getRoundSortValue(right));
+
+        return preferred.concat(extra);
     }
 
     function buildRoundSequence(firstRoundMatchCount) {
@@ -235,6 +252,7 @@
 
         matches.forEach(match => {
             const slotIndex = Math.max((match.match_number || 1) - 1, 0);
+
             if (slotIndex < slots.length) {
                 slots[slotIndex] = match;
             }
@@ -246,62 +264,152 @@
         }));
     }
 
+    function buildBoardLayout(rounds) {
+        const centers = [];
+        const columns = [];
+        const firstRoundCount = rounds[0].slots.length;
+
+        for (let roundIndex = 0; roundIndex < rounds.length; roundIndex++) {
+            columns[roundIndex] = boardConfig.paddingLeft + roundIndex * (boardConfig.cardWidth + boardConfig.columnGap);
+        }
+
+        centers[0] = [];
+        for (let slotIndex = 0; slotIndex < firstRoundCount; slotIndex++) {
+            centers[0][slotIndex] = boardConfig.headerHeight + (boardConfig.cardHeight / 2) + (slotIndex * (boardConfig.cardHeight + boardConfig.rowGap));
+        }
+
+        for (let roundIndex = 1; roundIndex < rounds.length; roundIndex++) {
+            centers[roundIndex] = [];
+
+            for (let slotIndex = 0; slotIndex < rounds[roundIndex].slots.length; slotIndex++) {
+                const topChild = centers[roundIndex - 1][slotIndex * 2];
+                const bottomChild = centers[roundIndex - 1][slotIndex * 2 + 1];
+
+                if (typeof topChild === 'number' && typeof bottomChild === 'number') {
+                    centers[roundIndex][slotIndex] = (topChild + bottomChild) / 2;
+                } else if (typeof topChild === 'number') {
+                    centers[roundIndex][slotIndex] = topChild;
+                } else if (typeof bottomChild === 'number') {
+                    centers[roundIndex][slotIndex] = bottomChild;
+                } else {
+                    centers[roundIndex][slotIndex] = boardConfig.headerHeight + (boardConfig.cardHeight / 2);
+                }
+            }
+        }
+
+        return {
+            width: columns[columns.length - 1] + boardConfig.cardWidth + boardConfig.paddingRight,
+            height: centers[0][centers[0].length - 1] + (boardConfig.cardHeight / 2) + boardConfig.paddingBottom,
+            columns: columns,
+            centers: centers
+        };
+    }
+
+    function createConnectorPaths(rounds, layout) {
+        let paths = '';
+
+        for (let roundIndex = 0; roundIndex < rounds.length - 1; roundIndex++) {
+            for (let slotIndex = 0; slotIndex < rounds[roundIndex].slots.length; slotIndex++) {
+                const currentCenterY = layout.centers[roundIndex][slotIndex];
+                const nextCenterY = layout.centers[roundIndex + 1][Math.floor(slotIndex / 2)];
+
+                if (typeof currentCenterY !== 'number' || typeof nextCenterY !== 'number') {
+                    continue;
+                }
+
+                const x1 = layout.columns[roundIndex] + boardConfig.cardWidth;
+                const x2 = layout.columns[roundIndex + 1];
+                const midX = x1 + ((x2 - x1) / 2);
+
+                paths += `
+                    <path d="M ${x1} ${currentCenterY} L ${midX} ${currentCenterY} L ${midX} ${nextCenterY} L ${x2} ${nextCenterY}" />
+                `;
+            }
+        }
+
+        return paths;
+    }
+
+    function renderCurrentBracket() {
+        if (!bracketData.length) {
+            renderState('empty');
+            return;
+        }
+
+        const rounds = buildRoundStructure(bracketData);
+
+        if (!rounds.length) {
+            renderState('empty');
+            return;
+        }
+
+        renderBracket(rounds);
+    }
+
     function renderBracket(rounds) {
         const container = document.getElementById('bracketContainer');
-        let html = '<div class="bracket-board">';
+        const layout = buildBoardLayout(rounds);
+        let html = `
+            <div class="bracket-board" style="width: ${layout.width}px; height: ${layout.height}px;">
+                <svg class="connector-layer" viewBox="0 0 ${layout.width} ${layout.height}" preserveAspectRatio="none">
+                    ${createConnectorPaths(rounds, layout)}
+                </svg>
+        `;
 
         rounds.forEach((round, roundIndex) => {
             html += `
-                <section class="round-column">
-                    <div class="round-heading">
-                        <span class="round-chip">${escapeHtml(round.label)}</span>
-                        <p class="round-count">${round.matchCount} คู่ในรอบนี้</p>
-                    </div>
-                    <div class="matches-stack">
-                        ${round.slots.map(slot => createMatchCard(slot, round, roundIndex, rounds)).join('')}
-                    </div>
-                </section>
+                <div class="round-heading" style="left: ${layout.columns[roundIndex]}px; width: ${boardConfig.cardWidth}px;">
+                    <span class="round-chip">${escapeHtml(round.label)}</span>
+                    <p class="round-count">${round.matchCount} คู่ในรอบนี้</p>
+                </div>
             `;
 
-            if (roundIndex < rounds.length - 1) {
-                html += `
-                    <div class="round-separator" aria-hidden="true">
-                        <span class="round-separator-line"></span>
-                    </div>
-                `;
-            }
+            round.slots.forEach((slot, slotIndex) => {
+                html += createMatchCard(slot, round.key, layout.columns[roundIndex], layout.centers[roundIndex][slotIndex], roundIndex, rounds);
+            });
         });
 
         html += '</div>';
         container.innerHTML = html;
     }
 
-    function createMatchCard(slot, round, roundIndex, rounds) {
-        const match = slot.match;
-        const nextRound = rounds[roundIndex + 1];
+    function createMatchCard(slot, roundKey, left, centerY, roundIndex, rounds) {
+        const top = centerY - (boardConfig.cardHeight / 2);
         const advanceText = getAdvanceText(roundIndex, slot.matchNumber, rounds);
+        const slotKey = `${roundKey}-${slot.matchNumber}`;
 
-        if (!match) {
+        if (!slot.match) {
             return `
-                <article class="match-card is-placeholder">
+                <article class="match-card is-placeholder" data-slot-key="${escapeAttribute(slotKey)}" style="left: ${left}px; top: ${top}px;">
                     <div class="match-header">
                         <span class="match-number">คู่ที่ ${slot.matchNumber}</span>
                         <span class="match-status pending">รอทีมเข้ารอบ</span>
                     </div>
-                    <div class="team-row is-tbd">
-                        <span>TBD</span>
+                    <div class="match-body">
+                        <div class="team-row is-tbd">
+                            <span>TBD</span>
+                        </div>
+                        <div class="team-row is-tbd">
+                            <span>TBD</span>
+                        </div>
                     </div>
-                    <div class="team-row is-tbd">
-                        <span>TBD</span>
-                    </div>
+                    <div class="match-meta is-empty">รอผลจากรอบก่อนหน้า</div>
                     <div class="advance-hint">${escapeHtml(advanceText)}</div>
                     <div class="admin-action-grid">
                         <button type="button" class="match-action-btn" disabled>รอผลจากรอบก่อน</button>
+                        <button type="button" class="match-action-btn" disabled>ยังเลือกผู้ชนะไม่ได้</button>
+                    </div>
+                    <div class="admin-tool-row">
+                        <button type="button" class="tool-btn" disabled>กำลังแข่ง</button>
+                        <button type="button" class="tool-btn" disabled>ล้างผล</button>
+                        <button type="button" class="tool-btn" disabled>รายละเอียด</button>
                     </div>
                 </article>
             `;
         }
 
+        const match = slot.match;
+        const nextRound = rounds[roundIndex + 1];
         const statusKey = getStatusKey(match.status);
         const isWinner1 = match.winner_id && match.winner_id === match.team1_id;
         const isWinner2 = match.winner_id && match.winner_id === match.team2_id;
@@ -340,20 +448,24 @@
         }
 
         return `
-            <article class="match-card">
+            <article class="match-card" data-slot-key="${escapeAttribute(slotKey)}" style="left: ${left}px; top: ${top}px;">
                 <div class="match-header">
                     <span class="match-number">คู่ที่ ${slot.matchNumber}</span>
                     <span class="match-status ${statusKey}">${getStatusText(statusKey)}</span>
                 </div>
-                <div class="team-row ${isWinner1 ? 'is-winner' : ''} ${!match.team1_id ? 'is-tbd' : ''}">
-                    <span>${escapeHtml(match.team1_name || 'TBD')}</span>
-                    ${isWinner1 ? '<i class="bi bi-trophy-fill"></i>' : ''}
+                <div class="match-body">
+                    <div class="team-row ${isWinner1 ? 'is-winner' : ''} ${!match.team1_id ? 'is-tbd' : ''}">
+                        <span>${escapeHtml(match.team1_name || 'TBD')}</span>
+                        ${isWinner1 ? '<i class="bi bi-trophy-fill"></i>' : ''}
+                    </div>
+                    <div class="team-row ${isWinner2 ? 'is-winner' : ''} ${!match.team2_id ? 'is-tbd' : ''}">
+                        <span>${escapeHtml(match.team2_name || 'TBD')}</span>
+                        ${isWinner2 ? '<i class="bi bi-trophy-fill"></i>' : ''}
+                    </div>
                 </div>
-                <div class="team-row ${isWinner2 ? 'is-winner' : ''} ${!match.team2_id ? 'is-tbd' : ''}">
-                    <span>${escapeHtml(match.team2_name || 'TBD')}</span>
-                    ${isWinner2 ? '<i class="bi bi-trophy-fill"></i>' : ''}
+                <div class="match-meta ${meta.length ? '' : 'is-empty'}">
+                    ${meta.length ? meta.join('') : 'ยังไม่มีข้อมูลเพิ่มเติม'}
                 </div>
-                ${meta.length ? `<div class="match-meta">${meta.join('')}</div>` : ''}
                 <div class="advance-hint">${escapeHtml(advanceText)}</div>
                 <div class="admin-action-grid">
                     <button type="button" class="match-action-btn ${isWinner1 ? 'is-active' : ''}" onclick="setWinner(${match.id}, ${match.team1_id || 'null'})" ${match.team1_id ? '' : 'disabled'}>
@@ -408,11 +520,7 @@
     }
 
     function getRoundLabel(roundKey, matchCount) {
-        if (roundTextMap[roundKey]) {
-            return roundTextMap[roundKey];
-        }
-
-        return `รอบ ${matchCount * 2} ทีม`;
+        return roundTextMap[roundKey] || `รอบ ${matchCount * 2} ทีม`;
     }
 
     function getStatusKey(status) {
@@ -453,7 +561,10 @@
     }
 
     function populateTeamSelects() {
-        const options = teamsList.map(team => `<option value="${team.id}">${escapeHtml(team.team_name)}</option>`).join('');
+        const options = teamsList
+            .map(team => `<option value="${team.id}">${escapeHtml(team.team_name)}</option>`)
+            .join('');
+
         document.getElementById('team1Id').innerHTML = '<option value="">-- ว่าง --</option>' + options;
         document.getElementById('team2Id').innerHTML = '<option value="">-- ว่าง --</option>' + options;
     }
@@ -476,6 +587,194 @@
 
     function getMatchById(matchId) {
         return bracketData.find(match => match.id === matchId);
+    }
+
+    function sortBracketMatches(matches) {
+        matches.sort((left, right) => {
+            const roundDiff = getRoundSortValue(left.round) - getRoundSortValue(right.round);
+
+            if (roundDiff !== 0) {
+                return roundDiff;
+            }
+
+            return (left.match_number || 0) - (right.match_number || 0);
+        });
+    }
+
+    function upsertBracketMatches(matches) {
+        const merged = new Map(bracketData.map(match => [match.id, match]));
+
+        matches.forEach(match => {
+            merged.set(match.id, match);
+        });
+
+        bracketData = Array.from(merged.values());
+        sortBracketMatches(bracketData);
+    }
+
+    function patchBracketDom(updatedMatches, deletedMatchId) {
+        if (deletedMatchId || !updatedMatches.length) {
+            renderCurrentBracket();
+            return;
+        }
+
+        const container = document.getElementById('bracketContainer');
+        const board = container.querySelector('.bracket-board');
+
+        if (!board) {
+            renderCurrentBracket();
+            return;
+        }
+
+        const rounds = buildRoundStructure(bracketData);
+
+        if (!rounds.length) {
+            renderState('empty');
+            return;
+        }
+
+        const layout = buildBoardLayout(rounds);
+        let requiresFullRender = false;
+
+        updatedMatches.forEach(match => {
+            const roundIndex = rounds.findIndex(round => round.key === match.round);
+
+            if (roundIndex === -1) {
+                requiresFullRender = true;
+                return;
+            }
+
+            const slotIndex = rounds[roundIndex].slots.findIndex(slot => slot.matchNumber === match.match_number);
+
+            if (slotIndex === -1) {
+                requiresFullRender = true;
+                return;
+            }
+
+            const slotKey = `${match.round}-${match.match_number}`;
+            const card = board.querySelector(`[data-slot-key="${slotKey}"]`);
+
+            if (!card) {
+                requiresFullRender = true;
+                return;
+            }
+
+            card.outerHTML = createMatchCard(
+                rounds[roundIndex].slots[slotIndex],
+                rounds[roundIndex].key,
+                layout.columns[roundIndex],
+                layout.centers[roundIndex][slotIndex],
+                roundIndex,
+                rounds
+            );
+        });
+
+        if (requiresFullRender) {
+            renderCurrentBracket();
+        }
+    }
+
+    function applyBracketChanges(data) {
+        if (!data) {
+            renderCurrentBracket();
+            return;
+        }
+
+        if (Array.isArray(data.matches)) {
+            bracketData = data.matches;
+            sortBracketMatches(bracketData);
+            renderCurrentBracket();
+            return;
+        }
+
+        const deletedMatchId = data.deleted_match_id || null;
+
+        if (deletedMatchId) {
+            bracketData = bracketData.filter(match => match.id !== deletedMatchId);
+        }
+
+        if (Array.isArray(data.updated_matches) && data.updated_matches.length) {
+            upsertBracketMatches(data.updated_matches);
+        } else {
+            sortBracketMatches(bracketData);
+        }
+
+        patchBracketDom(data.updated_matches || [], deletedMatchId);
+    }
+
+    function enableGrabScroll(viewport) {
+        if (!viewport) {
+            return;
+        }
+
+        const dragState = {
+            isPointerDown: false,
+            isDragging: false,
+            startX: 0,
+            startY: 0,
+            startScrollLeft: 0,
+            startScrollTop: 0,
+            startPageScrollTop: 0
+        };
+        const interactiveSelector = 'a, button, input, select, textarea, label, summary, [role="button"]';
+
+        viewport.addEventListener('mousedown', event => {
+            if (event.button !== 0 || event.target.closest(interactiveSelector)) {
+                return;
+            }
+
+            dragState.isPointerDown = true;
+            dragState.isDragging = false;
+            dragState.startX = event.clientX;
+            dragState.startY = event.clientY;
+            dragState.startScrollLeft = viewport.scrollLeft;
+            dragState.startScrollTop = viewport.scrollTop;
+            dragState.startPageScrollTop = window.scrollY;
+            viewport.classList.add('is-grab-ready');
+        });
+
+        window.addEventListener('mousemove', event => {
+            if (!dragState.isPointerDown) {
+                return;
+            }
+
+            const deltaX = event.clientX - dragState.startX;
+            const deltaY = event.clientY - dragState.startY;
+
+            if (!dragState.isDragging && Math.abs(deltaX) + Math.abs(deltaY) < 6) {
+                return;
+            }
+
+            dragState.isDragging = true;
+            viewport.classList.add('is-grabbing');
+            document.body.classList.add('is-bracket-dragging');
+            viewport.scrollLeft = dragState.startScrollLeft - deltaX;
+
+            if (viewport.scrollHeight > viewport.clientHeight) {
+                viewport.scrollTop = dragState.startScrollTop - deltaY;
+            } else {
+                window.scrollTo(window.scrollX, dragState.startPageScrollTop - deltaY);
+            }
+
+            event.preventDefault();
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (!dragState.isPointerDown) {
+                return;
+            }
+
+            dragState.isPointerDown = false;
+            dragState.isDragging = false;
+            viewport.classList.remove('is-grab-ready', 'is-grabbing');
+            document.body.classList.remove('is-bracket-dragging');
+        });
+
+        viewport.addEventListener('dragstart', event => {
+            if (dragState.isPointerDown) {
+                event.preventDefault();
+            }
+        });
     }
 
     function getUpdatePayload(match, overrides) {
@@ -507,7 +806,7 @@
         }).then(res => res.json())
             .then(result => {
                 if (result.success) {
-                    loadBracket();
+                    applyBracketChanges(result.data);
                 } else {
                     alert(result.message || 'เกิดข้อผิดพลาด');
                 }
@@ -611,7 +910,7 @@
             .then(result => {
                 if (result.success) {
                     bootstrap.Modal.getInstance(document.getElementById('matchModal')).hide();
-                    loadBracket();
+                    applyBracketChanges(result.data);
                 } else {
                     alert(result.message || 'เกิดข้อผิดพลาด');
                 }
@@ -634,7 +933,7 @@
             .then(result => {
                 if (result.success) {
                     bootstrap.Modal.getInstance(document.getElementById('matchModal')).hide();
-                    loadBracket();
+                    applyBracketChanges(result.data);
                 } else {
                     alert(result.message || 'เกิดข้อผิดพลาด');
                 }
@@ -654,7 +953,7 @@
         }).then(res => res.json())
             .then(result => {
                 if (result.success) {
-                    loadBracket();
+                    applyBracketChanges(result.data);
                 } else {
                     alert(result.message || 'เกิดข้อผิดพลาด');
                 }
@@ -680,34 +979,57 @@
 <style>
     .bracket-admin-card {
         padding: 24px;
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: hidden;
+        cursor: grab;
     }
 
     .bracket-state {
         min-height: 320px;
     }
 
-    .bracket-board {
-        display: flex;
-        align-items: stretch;
-        gap: 20px;
-        min-width: max-content;
-        overflow-x: auto;
-        padding-bottom: 12px;
+    .bracket-admin-card.is-grab-ready,
+    .bracket-admin-card.is-grabbing {
+        cursor: grabbing;
     }
 
-    .round-column {
-        width: 340px;
-        flex: 0 0 340px;
+    body.is-bracket-dragging,
+    body.is-bracket-dragging * {
+        user-select: none;
+        cursor: grabbing !important;
+    }
+
+    .bracket-board {
+        position: relative;
+        min-width: max-content;
+    }
+
+    .connector-layer {
+        position: absolute;
+        inset: 0;
+        overflow: visible;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .connector-layer path {
+        fill: none;
+        stroke: rgba(255, 215, 0, 0.72);
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.2));
     }
 
     .round-heading {
+        position: absolute;
+        top: 0;
         padding: 18px 20px;
-        margin-bottom: 18px;
         border: 1px solid rgba(255, 215, 0, 0.24);
         border-radius: 18px;
         background: linear-gradient(180deg, rgba(255, 215, 0, 0.12), rgba(20, 18, 10, 0.86));
         box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+        z-index: 3;
     }
 
     .round-chip {
@@ -728,46 +1050,18 @@
         font-size: 14px;
     }
 
-    .matches-stack {
+    .match-card {
+        position: absolute;
+        width: 340px;
+        height: 336px;
         display: flex;
         flex-direction: column;
-        gap: 14px;
-    }
-
-    .round-separator {
-        width: 54px;
-        flex: 0 0 54px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .round-separator-line {
-        position: relative;
-        width: 100%;
-        height: 2px;
-        border-radius: 999px;
-        background: linear-gradient(90deg, rgba(255, 215, 0, 0.05), rgba(255, 215, 0, 0.55), rgba(255, 215, 0, 0.05));
-    }
-
-    .round-separator-line::after {
-        content: '';
-        position: absolute;
-        right: -1px;
-        top: 50%;
-        width: 10px;
-        height: 10px;
-        border-top: 2px solid rgba(255, 215, 0, 0.7);
-        border-right: 2px solid rgba(255, 215, 0, 0.7);
-        transform: translateY(-50%) rotate(45deg);
-    }
-
-    .match-card {
         overflow: hidden;
         border: 1px solid rgba(255, 215, 0, 0.18);
         border-radius: 16px;
         background: linear-gradient(180deg, rgba(37, 36, 46, 0.96), rgba(22, 22, 28, 0.96));
         box-shadow: 0 16px 32px rgba(0, 0, 0, 0.28);
+        z-index: 2;
     }
 
     .match-card.is-placeholder {
@@ -817,11 +1111,16 @@
         color: #6be58d;
     }
 
+    .match-body {
+        flex: 0 0 auto;
+    }
+
     .team-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
+        min-height: 56px;
         padding: 15px 16px;
         color: #f8f9fa;
         font-size: 15px;
@@ -851,10 +1150,19 @@
     .match-meta {
         display: flex;
         flex-wrap: wrap;
+        align-content: flex-start;
         gap: 10px 12px;
+        min-height: 68px;
+        max-height: 68px;
         padding: 12px 16px 14px;
         border-top: 1px solid rgba(255, 255, 255, 0.08);
         background: rgba(0, 0, 0, 0.12);
+        overflow: hidden;
+    }
+
+    .match-meta.is-empty {
+        color: rgba(255, 255, 255, 0.42);
+        font-size: 12px;
     }
 
     .match-meta-item,
@@ -873,6 +1181,7 @@
     }
 
     .advance-hint {
+        min-height: 40px;
         padding: 12px 16px 0;
         color: rgba(255, 215, 97, 0.82);
         font-size: 12px;
@@ -910,6 +1219,7 @@
     .admin-tool-row {
         display: flex;
         gap: 8px;
+        margin-top: auto;
         padding: 0 16px 16px;
     }
 
@@ -921,11 +1231,17 @@
         color: rgba(255, 255, 255, 0.78);
         font-size: 12px;
         padding: 8px 10px;
+        transition: all 0.2s ease;
     }
 
-    .tool-btn:hover {
+    .tool-btn:hover:not(:disabled) {
         color: #fff;
         border-color: rgba(255, 215, 0, 0.24);
+    }
+
+    .tool-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
     }
 
     .state-card {
@@ -960,29 +1276,23 @@
         color: #ff7b7b;
     }
 
-    .bracket-board::-webkit-scrollbar {
+    .bracket-admin-card::-webkit-scrollbar {
         height: 12px;
     }
 
-    .bracket-board::-webkit-scrollbar-track {
+    .bracket-admin-card::-webkit-scrollbar-track {
         background: rgba(255, 255, 255, 0.08);
         border-radius: 999px;
     }
 
-    .bracket-board::-webkit-scrollbar-thumb {
+    .bracket-admin-card::-webkit-scrollbar-thumb {
         background: rgba(255, 215, 0, 0.5);
         border-radius: 999px;
     }
 
     @media (max-width: 768px) {
-        .round-column {
-            width: 300px;
-            flex-basis: 300px;
-        }
-
-        .round-separator {
-            width: 36px;
-            flex-basis: 36px;
+        .bracket-admin-card {
+            padding: 18px;
         }
 
         .admin-action-grid {

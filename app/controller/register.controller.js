@@ -1,5 +1,14 @@
 const mysqli = require('../config/mysqli.config');
 
+const getActiveTeamsCount = async (conn) => {
+  const [rows] = await conn.query(
+    'SELECT COUNT(*) as count FROM teams WHERE status IN (?, ?)',
+    ['pending', 'approved']
+  );
+
+  return rows[0]?.count || 0;
+};
+
 module.exports = {
   // สมัครทีมเข้าแข่งขัน
   register: async (req, res) => {
@@ -29,26 +38,12 @@ module.exports = {
         });
       }
 
-      // ตรวจสอบจำนวนทีม
-      const [countRows] = await conn.query(
-        'SELECT COUNT(*) as count FROM teams WHERE status = ?',
-        ['approved']
-      );
-      
       const [maxRows] = await conn.query(
         'SELECT config_value FROM config WHERE config_key = ?',
         ['max_teams']
       );
       
-      const currentTeams = countRows[0].count;
-      const maxTeams = parseInt(maxRows[0]?.config_value || '32');
-      
-      if (currentTeams >= maxTeams) {
-        return res.status(400).json({
-          success: false,
-          message: 'ทีมเต็มแล้ว'
-        });
-      }
+      const maxTeams = parseInt(maxRows[0]?.config_value || '32', 10);
 
       // เริ่ม transaction
       await conn.beginTransaction();
@@ -75,6 +70,10 @@ module.exports = {
       );
 
       const teamId = teamResult.insertId;
+      const [queueRows] = await conn.query(
+        'SELECT COUNT(*) as count FROM teams WHERE status IN (?, ?) AND id <= ?',
+        ['pending', 'approved', teamId]
+      );
 
       // เพิ่มผู้เล่น 2 คน
       for (let i = 0; i < players.length; i++) {
@@ -104,12 +103,21 @@ module.exports = {
 
       await conn.commit();
 
+      const queuePosition = queueRows[0]?.count || 0;
+      const reservePosition = queuePosition > maxTeams ? queuePosition - maxTeams : null;
+
       res.status(201).json({
         success: true,
-        message: 'สมัครสำเร็จ',
+        message: reservePosition
+          ? `สมัครสำเร็จ ทีมของคุณอยู่ในลำดับทีมสำรองที่ ${reservePosition}`
+          : 'สมัครสำเร็จ',
         data: {
           team_id: teamId,
-          team_name: team_name
+          team_name: team_name,
+          queue_position: queuePosition,
+          reserve_position: reservePosition,
+          is_reserve: Boolean(reservePosition),
+          max_teams: maxTeams
         }
       });
 
@@ -129,14 +137,23 @@ module.exports = {
   getConfig: async (req, res) => {
     try {
       const [rows] = await mysqli.query(
-        'SELECT config_key, config_value FROM config WHERE config_key IN (?, ?, ?, ?, ?)',
-        ['tournament_name', 'tournament_date', 'tournament_time', 'location', 'registration_open']
+        'SELECT config_key, config_value FROM config WHERE config_key IN (?, ?, ?, ?, ?, ?)',
+        ['tournament_name', 'tournament_date', 'tournament_time', 'location', 'registration_open', 'max_teams']
       );
       
       const config = {};
       rows.forEach(row => {
         config[row.config_key] = row.config_value;
       });
+
+      const maxTeams = parseInt(config.max_teams || '32', 10);
+      const activeTeams = await getActiveTeamsCount(mysqli);
+      const nextReservePosition = activeTeams >= maxTeams ? (activeTeams - maxTeams) + 1 : null;
+
+      config.max_teams = maxTeams;
+      config.active_teams = activeTeams;
+      config.next_reserve_position = nextReservePosition;
+      config.remaining_slots = Math.max(maxTeams - activeTeams, 0);
 
       res.json({
         success: true,

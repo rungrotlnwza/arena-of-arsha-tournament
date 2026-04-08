@@ -24,6 +24,18 @@
         semi: 'รอบรองชนะเลิศ',
         final: 'รอบชิงชนะเลิศ'
     };
+    const boardConfig = {
+        headerHeight: 94,
+        cardWidth: 320,
+        cardHeight: 176,
+        columnGap: 120,
+        rowGap: 28,
+        paddingLeft: 8,
+        paddingRight: 24,
+        paddingBottom: 24
+    };
+
+    enableGrabScroll(document.querySelector('.bracket-wrapper'));
 
     fetch('/api/bracket', { credentials: 'include', method: 'GET' })
         .then(res => res.json())
@@ -33,7 +45,7 @@
                 return;
             }
 
-            const rounds = normalizeRounds(result.data || {});
+            const rounds = buildRoundStructure(result.data || {});
 
             if (!rounds.length) {
                 renderState('empty');
@@ -41,19 +53,152 @@
             }
 
             renderBracket(rounds);
+        }, () => {
+            renderState('error');
         });
 
-    function normalizeRounds(roundsData) {
-        const knownRounds = preferredRounds.filter(key => Array.isArray(roundsData[key]) && roundsData[key].length > 0);
-        const extraRounds = Object.keys(roundsData)
-            .filter(key => !preferredRounds.includes(key) && Array.isArray(roundsData[key]) && roundsData[key].length > 0)
-            .sort((left, right) => left.localeCompare(right));
+    function buildRoundStructure(roundsData) {
+        const grouped = {};
 
-        return knownRounds.concat(extraRounds).map((key, index) => ({
-            key: key,
-            label: roundLabels[key] || `รอบที่ ${index + 1}`,
-            matches: roundsData[key].slice().sort((left, right) => (left.match_number || 0) - (right.match_number || 0))
+        preferredRounds.forEach(key => {
+            if (Array.isArray(roundsData[key]) && roundsData[key].length) {
+                grouped[key] = roundsData[key].slice().sort((left, right) => (left.match_number || 0) - (right.match_number || 0));
+            }
+        });
+
+        Object.keys(roundsData)
+            .filter(key => !preferredRounds.includes(key) && Array.isArray(roundsData[key]) && roundsData[key].length)
+            .sort((left, right) => getRoundSortValue(left) - getRoundSortValue(right))
+            .forEach(key => {
+                grouped[key] = roundsData[key].slice().sort((left, right) => (left.match_number || 0) - (right.match_number || 0));
+            });
+
+        if (!grouped.round_1 || !grouped.round_1.length) {
+            return [];
+        }
+
+        return buildRoundSequence(grouped.round_1.length).map(round => ({
+            key: round.key,
+            label: getRoundLabel(round.key, round.matchCount),
+            matchCount: round.matchCount,
+            slots: fillMatchSlots(grouped[round.key] || [], round.matchCount)
         }));
+    }
+
+    function buildRoundSequence(firstRoundMatchCount) {
+        const rounds = [{
+            key: 'round_1',
+            matchCount: firstRoundMatchCount
+        }];
+
+        let currentRoundNumber = 1;
+        let currentMatchCount = firstRoundMatchCount;
+
+        while (currentMatchCount > 1) {
+            const nextMatchCount = Math.ceil(currentMatchCount / 2);
+            let nextRoundKey = 'final';
+
+            if (nextMatchCount === 4) {
+                nextRoundKey = 'quarter';
+            } else if (nextMatchCount === 2) {
+                nextRoundKey = 'semi';
+            } else if (nextMatchCount > 1) {
+                currentRoundNumber += 1;
+                nextRoundKey = `round_${currentRoundNumber}`;
+            }
+
+            rounds.push({
+                key: nextRoundKey,
+                matchCount: nextMatchCount
+            });
+
+            currentMatchCount = nextMatchCount;
+        }
+
+        return rounds;
+    }
+
+    function fillMatchSlots(matches, expectedCount) {
+        const slots = new Array(expectedCount).fill(null);
+
+        matches.forEach(match => {
+            const slotIndex = Math.max((match.match_number || 1) - 1, 0);
+
+            if (slotIndex < slots.length) {
+                slots[slotIndex] = match;
+            }
+        });
+
+        return slots.map((match, index) => ({
+            match: match,
+            matchNumber: index + 1
+        }));
+    }
+
+    function buildBoardLayout(rounds) {
+        const centers = [];
+        const columns = [];
+        const firstRoundCount = rounds[0].slots.length;
+
+        for (let roundIndex = 0; roundIndex < rounds.length; roundIndex++) {
+            columns[roundIndex] = boardConfig.paddingLeft + roundIndex * (boardConfig.cardWidth + boardConfig.columnGap);
+        }
+
+        centers[0] = [];
+        for (let slotIndex = 0; slotIndex < firstRoundCount; slotIndex++) {
+            centers[0][slotIndex] = boardConfig.headerHeight + (boardConfig.cardHeight / 2) + (slotIndex * (boardConfig.cardHeight + boardConfig.rowGap));
+        }
+
+        for (let roundIndex = 1; roundIndex < rounds.length; roundIndex++) {
+            centers[roundIndex] = [];
+
+            for (let slotIndex = 0; slotIndex < rounds[roundIndex].slots.length; slotIndex++) {
+                const topChild = centers[roundIndex - 1][slotIndex * 2];
+                const bottomChild = centers[roundIndex - 1][slotIndex * 2 + 1];
+
+                if (typeof topChild === 'number' && typeof bottomChild === 'number') {
+                    centers[roundIndex][slotIndex] = (topChild + bottomChild) / 2;
+                } else if (typeof topChild === 'number') {
+                    centers[roundIndex][slotIndex] = topChild;
+                } else if (typeof bottomChild === 'number') {
+                    centers[roundIndex][slotIndex] = bottomChild;
+                } else {
+                    centers[roundIndex][slotIndex] = boardConfig.headerHeight + (boardConfig.cardHeight / 2);
+                }
+            }
+        }
+
+        return {
+            width: columns[columns.length - 1] + boardConfig.cardWidth + boardConfig.paddingRight,
+            height: centers[0][centers[0].length - 1] + (boardConfig.cardHeight / 2) + boardConfig.paddingBottom,
+            columns: columns,
+            centers: centers
+        };
+    }
+
+    function createConnectorPaths(rounds, layout) {
+        let paths = '';
+
+        for (let roundIndex = 0; roundIndex < rounds.length - 1; roundIndex++) {
+            for (let slotIndex = 0; slotIndex < rounds[roundIndex].slots.length; slotIndex++) {
+                const currentCenterY = layout.centers[roundIndex][slotIndex];
+                const nextCenterY = layout.centers[roundIndex + 1][Math.floor(slotIndex / 2)];
+
+                if (typeof currentCenterY !== 'number' || typeof nextCenterY !== 'number') {
+                    continue;
+                }
+
+                const x1 = layout.columns[roundIndex] + boardConfig.cardWidth;
+                const x2 = layout.columns[roundIndex + 1];
+                const midX = x1 + ((x2 - x1) / 2);
+
+                paths += `
+                    <path d="M ${x1} ${currentCenterY} L ${midX} ${currentCenterY} L ${midX} ${nextCenterY} L ${x2} ${nextCenterY}" />
+                `;
+            }
+        }
+
+        return paths;
     }
 
     function renderState(type) {
@@ -81,35 +226,130 @@
 
     function renderBracket(rounds) {
         const container = document.getElementById('bracketContainer');
-        let html = '<div class="bracket-board">';
+        const layout = buildBoardLayout(rounds);
+        let html = `
+            <div class="bracket-board" style="width: ${layout.width}px; height: ${layout.height}px;">
+                <svg class="connector-layer" viewBox="0 0 ${layout.width} ${layout.height}" preserveAspectRatio="none">
+                    ${createConnectorPaths(rounds, layout)}
+                </svg>
+        `;
 
-        rounds.forEach((round, index) => {
+        rounds.forEach((round, roundIndex) => {
             html += `
-                <section class="round-column">
-                    <div class="round-heading">
-                        <span class="round-chip">${escapeHtml(round.label)}</span>
-                        <p class="round-count">${round.matches.length} คู่แข่งขัน</p>
-                    </div>
-                    <div class="matches-stack">
-                        ${round.matches.map(createMatchCard).join('')}
-                    </div>
-                </section>
+                <div class="round-heading" style="left: ${layout.columns[roundIndex]}px; width: ${boardConfig.cardWidth}px;">
+                    <span class="round-chip">${escapeHtml(round.label)}</span>
+                    <p class="round-count">${round.matchCount} คู่แข่งขัน</p>
+                </div>
             `;
 
-            if (index < rounds.length - 1) {
-                html += `
-                    <div class="round-separator" aria-hidden="true">
-                        <span class="round-separator-line"></span>
-                    </div>
-                `;
-            }
+            round.slots.forEach((slot, slotIndex) => {
+                html += createMatchCard(slot, layout.columns[roundIndex], layout.centers[roundIndex][slotIndex]);
+            });
         });
 
         html += '</div>';
         container.innerHTML = html;
     }
 
-    function createMatchCard(match) {
+    function enableGrabScroll(viewport) {
+        if (!viewport) {
+            return;
+        }
+
+        const dragState = {
+            isPointerDown: false,
+            isDragging: false,
+            startX: 0,
+            startY: 0,
+            startScrollLeft: 0,
+            startScrollTop: 0,
+            startPageScrollTop: 0
+        };
+        const interactiveSelector = 'a, button, input, select, textarea, label, summary, [role="button"]';
+
+        viewport.addEventListener('mousedown', event => {
+            if (event.button !== 0 || event.target.closest(interactiveSelector)) {
+                return;
+            }
+
+            dragState.isPointerDown = true;
+            dragState.isDragging = false;
+            dragState.startX = event.clientX;
+            dragState.startY = event.clientY;
+            dragState.startScrollLeft = viewport.scrollLeft;
+            dragState.startScrollTop = viewport.scrollTop;
+            dragState.startPageScrollTop = window.scrollY;
+            viewport.classList.add('is-grab-ready');
+        });
+
+        window.addEventListener('mousemove', event => {
+            if (!dragState.isPointerDown) {
+                return;
+            }
+
+            const deltaX = event.clientX - dragState.startX;
+            const deltaY = event.clientY - dragState.startY;
+
+            if (!dragState.isDragging && Math.abs(deltaX) + Math.abs(deltaY) < 6) {
+                return;
+            }
+
+            dragState.isDragging = true;
+            viewport.classList.add('is-grabbing');
+            document.body.classList.add('is-bracket-dragging');
+            viewport.scrollLeft = dragState.startScrollLeft - deltaX;
+
+            if (viewport.scrollHeight > viewport.clientHeight) {
+                viewport.scrollTop = dragState.startScrollTop - deltaY;
+            } else {
+                window.scrollTo(window.scrollX, dragState.startPageScrollTop - deltaY);
+            }
+
+            event.preventDefault();
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (!dragState.isPointerDown) {
+                return;
+            }
+
+            dragState.isPointerDown = false;
+            dragState.isDragging = false;
+            viewport.classList.remove('is-grab-ready', 'is-grabbing');
+            document.body.classList.remove('is-bracket-dragging');
+        });
+
+        viewport.addEventListener('dragstart', event => {
+            if (dragState.isPointerDown) {
+                event.preventDefault();
+            }
+        });
+    }
+
+    function createMatchCard(slot, left, centerY) {
+        const top = centerY - (boardConfig.cardHeight / 2);
+
+        if (!slot.match) {
+            return `
+                <article class="match-card is-placeholder" style="left: ${left}px; top: ${top}px;">
+                    <div class="match-header">
+                        <span class="match-number">คู่ที่ ${slot.matchNumber}</span>
+                        <span class="match-status pending">รอแข่ง</span>
+                    </div>
+                    <div class="match-body">
+                        <div class="team-row is-tbd">
+                            <span>TBD</span>
+                        </div>
+                        <div class="team-row is-tbd">
+                            <span>TBD</span>
+                        </div>
+                    </div>
+                    <div class="match-meta is-empty">รอผลจากรอบก่อนหน้า</div>
+                </article>
+            `;
+        }
+
+        const match = slot.match;
         const statusKey = getStatusKey(match.status);
         const isWinner1 = match.winner_id && match.winner_id === match.team1_id;
         const isWinner2 = match.winner_id && match.winner_id === match.team2_id;
@@ -132,22 +372,55 @@
         }
 
         return `
-            <article class="match-card">
+            <article class="match-card" style="left: ${left}px; top: ${top}px;">
                 <div class="match-header">
-                    <span class="match-number">คู่ที่ ${escapeHtml(String(match.match_number || '-'))}</span>
+                    <span class="match-number">คู่ที่ ${escapeHtml(String(slot.matchNumber))}</span>
                     <span class="match-status ${statusKey}">${getStatusText(statusKey)}</span>
                 </div>
-                <div class="team-row ${isWinner1 ? 'is-winner' : ''} ${!match.team1_id ? 'is-tbd' : ''}">
-                    <span>${escapeHtml(match.team1_name || 'TBD')}</span>
-                    ${isWinner1 ? '<i class="bi bi-trophy-fill"></i>' : ''}
+                <div class="match-body">
+                    <div class="team-row ${isWinner1 ? 'is-winner' : ''} ${!match.team1_id ? 'is-tbd' : ''}">
+                        <span>${escapeHtml(match.team1_name || 'TBD')}</span>
+                        ${isWinner1 ? '<i class="bi bi-trophy-fill"></i>' : ''}
+                    </div>
+                    <div class="team-row ${isWinner2 ? 'is-winner' : ''} ${!match.team2_id ? 'is-tbd' : ''}">
+                        <span>${escapeHtml(match.team2_name || 'TBD')}</span>
+                        ${isWinner2 ? '<i class="bi bi-trophy-fill"></i>' : ''}
+                    </div>
                 </div>
-                <div class="team-row ${isWinner2 ? 'is-winner' : ''} ${!match.team2_id ? 'is-tbd' : ''}">
-                    <span>${escapeHtml(match.team2_name || 'TBD')}</span>
-                    ${isWinner2 ? '<i class="bi bi-trophy-fill"></i>' : ''}
+                <div class="match-meta ${meta.length ? '' : 'is-empty'}">
+                    ${meta.length ? meta.join('') : 'รอข้อมูลเพิ่มเติม'}
                 </div>
-                ${meta.length ? `<div class="match-meta">${meta.join('')}</div>` : ''}
             </article>
         `;
+    }
+
+    function getRoundLabel(roundKey, matchCount) {
+        return roundLabels[roundKey] || `รอบ ${matchCount * 2} ทีม`;
+    }
+
+    function getRoundSortValue(round) {
+        if (!round) {
+            return 9999;
+        }
+
+        if (round.indexOf('round_') === 0) {
+            const parsedRound = parseInt(round.split('_')[1], 10);
+            return Number.isNaN(parsedRound) ? 999 : parsedRound;
+        }
+
+        if (round === 'quarter') {
+            return 1000;
+        }
+
+        if (round === 'semi') {
+            return 1001;
+        }
+
+        if (round === 'final') {
+            return 1002;
+        }
+
+        return 9000;
     }
 
     function getStatusKey(status) {
@@ -195,32 +468,55 @@
     .bracket-wrapper {
         padding: 32px 20px 56px;
         overflow-x: auto;
+        cursor: grab;
     }
 
     .bracket-state {
         min-height: 320px;
     }
 
-    .bracket-board {
-        display: flex;
-        align-items: stretch;
-        gap: 20px;
-        min-width: max-content;
-        padding-bottom: 12px;
+    .bracket-wrapper.is-grab-ready,
+    .bracket-wrapper.is-grabbing {
+        cursor: grabbing;
     }
 
-    .round-column {
-        width: 320px;
-        flex: 0 0 320px;
+    body.is-bracket-dragging,
+    body.is-bracket-dragging * {
+        user-select: none;
+        cursor: grabbing !important;
+    }
+
+    .bracket-board {
+        position: relative;
+        min-width: max-content;
+    }
+
+    .connector-layer {
+        position: absolute;
+        inset: 0;
+        overflow: visible;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .connector-layer path {
+        fill: none;
+        stroke: rgba(255, 215, 0, 0.72);
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.2));
     }
 
     .round-heading {
+        position: absolute;
+        top: 0;
         padding: 18px 20px;
-        margin-bottom: 18px;
         border: 1px solid rgba(255, 215, 0, 0.24);
         border-radius: 18px;
         background: linear-gradient(180deg, rgba(255, 215, 0, 0.12), rgba(20, 18, 10, 0.86));
         box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+        z-index: 3;
     }
 
     .round-chip {
@@ -241,52 +537,22 @@
         font-size: 14px;
     }
 
-    .matches-stack {
+    .match-card {
+        position: absolute;
+        width: 320px;
+        height: 176px;
         display: flex;
         flex-direction: column;
-        gap: 14px;
-    }
-
-    .round-separator {
-        width: 54px;
-        flex: 0 0 54px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .round-separator-line {
-        position: relative;
-        width: 100%;
-        height: 2px;
-        border-radius: 999px;
-        background: linear-gradient(90deg, rgba(255, 215, 0, 0.05), rgba(255, 215, 0, 0.55), rgba(255, 215, 0, 0.05));
-    }
-
-    .round-separator-line::after {
-        content: '';
-        position: absolute;
-        right: -1px;
-        top: 50%;
-        width: 10px;
-        height: 10px;
-        border-top: 2px solid rgba(255, 215, 0, 0.7);
-        border-right: 2px solid rgba(255, 215, 0, 0.7);
-        transform: translateY(-50%) rotate(45deg);
-    }
-
-    .match-card {
         overflow: hidden;
         border: 1px solid rgba(255, 215, 0, 0.18);
         border-radius: 16px;
         background: linear-gradient(180deg, rgba(37, 36, 46, 0.96), rgba(22, 22, 28, 0.96));
         box-shadow: 0 16px 32px rgba(0, 0, 0, 0.28);
-        transition: transform 0.2s ease, border-color 0.2s ease;
+        z-index: 2;
     }
 
-    .match-card:hover {
-        transform: translateY(-2px);
-        border-color: rgba(255, 215, 0, 0.4);
+    .match-card.is-placeholder {
+        border-style: dashed;
     }
 
     .match-header {
@@ -331,6 +597,10 @@
         color: #6be58d;
     }
 
+    .match-body {
+        flex: 1;
+    }
+
     .team-row {
         display: flex;
         align-items: center;
@@ -364,17 +634,26 @@
 
     .match-meta {
         display: flex;
-        flex-wrap: wrap;
+        align-items: center;
         gap: 10px 12px;
+        min-height: 44px;
         padding: 12px 16px 14px;
         border-top: 1px solid rgba(255, 255, 255, 0.08);
         background: rgba(0, 0, 0, 0.12);
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .match-meta.is-empty {
+        color: rgba(255, 255, 255, 0.42);
     }
 
     .match-meta-item,
     .match-meta-link {
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 12px;
+        color: inherit;
         text-decoration: none;
     }
 
@@ -426,21 +705,5 @@
     .bracket-wrapper::-webkit-scrollbar-thumb {
         background: rgba(255, 215, 0, 0.5);
         border-radius: 999px;
-    }
-
-    @media (max-width: 768px) {
-        .bracket-wrapper {
-            padding-inline: 14px;
-        }
-
-        .round-column {
-            width: 280px;
-            flex-basis: 280px;
-        }
-
-        .round-separator {
-            width: 36px;
-            flex-basis: 36px;
-        }
     }
 </style>
