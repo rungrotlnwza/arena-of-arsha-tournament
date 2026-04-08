@@ -94,22 +94,24 @@ module.exports = {
          LEFT JOIN teams t2 ON b.team2_id = t2.id
          LEFT JOIN teams tw ON b.winner_id = tw.id
          ORDER BY 
-           FIELD(b.round, 'round_1', 'quarter', 'semi', 'final'),
+           FIELD(b.round, 'round_1', 'round_2', 'quarter', 'semi', 'final'),
            b.match_number`
       );
 
-      // Group by round
       const rounds = {
         round_1: [],
+        round_2: [],
         quarter: [],
         semi: [],
         final: []
       };
 
       matches.forEach(match => {
-        if (rounds[match.round]) {
-          rounds[match.round].push(match);
+        if (!rounds[match.round]) {
+          rounds[match.round] = [];
         }
+
+        rounds[match.round].push(match);
       });
 
       res.json({

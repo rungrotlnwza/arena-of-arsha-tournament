@@ -6,152 +6,441 @@
     </div>
 </header>
 
-<!-- Bracket View -->
-<div class="container-fluid py-5">
-    <div id="bracketContainer">
+<!-- Bracket Container -->
+<div class="bracket-wrapper">
+    <div id="bracketContainer" class="bracket-state">
         <div class="text-center py-5">
-            <div class="spinner-border text-warning" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
+            <div class="spinner-border text-warning" role="status"></div>
         </div>
     </div>
 </div>
 
 <script>
-    const roundNames = {
-        round_1: 'รอบ 32 ทีม',
-        quarter: 'รอบ 8 ทีม (Quarter Final)',
-        semi: 'รอบรองชนะเลิศ (Semi Final)',
-        final: 'รอบชิงชนะเลิศ (Final)'
+    const preferredRounds = ['round_1', 'round_2', 'quarter', 'semi', 'final'];
+    const roundLabels = {
+        round_1: 'รอบแรก',
+        round_2: 'รอบถัดไป',
+        quarter: 'รอบ 8 ทีม',
+        semi: 'รอบรองชนะเลิศ',
+        final: 'รอบชิงชนะเลิศ'
     };
-    
+
     fetch('/api/bracket', { credentials: 'include', method: 'GET' })
         .then(res => res.json())
         .then(result => {
-            const container = document.getElementById('bracketContainer');
-            
             if (!result.success) {
-                container.innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="bi bi-exclamation-circle fs-1 mb-3 d-block" style="color: #dc3545;"></i>
-                        <h4 style="color: #ccc;">เกิดข้อผิดพลาด</h4>
-                        <p style="color: #888;">ไม่สามารถโหลดตารางการแข่งขันได้</p>
-                    </div>
-                `;
+                renderState('error');
                 return;
             }
-            
-            const rounds = result.data;
-            const hasData = Object.values(rounds).some(matches => matches.length > 0);
-            
-            if (!hasData) {
-                container.innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="bi bi-calendar-x fs-1 mb-3 d-block" style="color: var(--primary-gold);"></i>
-                        <h4 style="color: #ccc;">ยังไม่มีตารางการแข่งขัน</h4>
-                        <p style="color: #888;">รอการประกาศตารางจากทางผู้จัดการแข่งขัน</p>
-                    </div>
-                `;
+
+            const rounds = normalizeRounds(result.data || {});
+
+            if (!rounds.length) {
+                renderState('empty');
                 return;
             }
-            
-            // Build bracket view
-            let html = '<div class="bracket-wrapper" style="overflow-x: auto;">';
-            html += '<div class="d-flex justify-content-center" style="min-width: 1200px; padding: 20px;">';
-            
-            ['round_1', 'quarter', 'semi', 'final'].forEach((round, roundIndex) => {
-                const matches = rounds[round] || [];
-                if (matches.length === 0) return;
-                
-                html += `
-                    <div class="round-column mx-3" style="width: 280px;">
-                        <h5 class="text-center mb-4" style="color: var(--primary-gold); font-weight: 700;">
-                            ${roundNames[round]}
-                        </h5>
-                        <div class="matches-container" style="display: flex; flex-direction: column; justify-content: space-around; height: ${matches.length * 150}px;">
-                `;
-                
-                matches.forEach(match => {
-                    const isWinner1 = match.winner_id === match.team1_id;
-                    const isWinner2 = match.winner_id === match.team2_id;
-                    
-                    html += `
-                        <div class="match-card mb-3" style="background: rgba(30,30,30,0.95); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden;">
-                            <div class="match-header px-3 py-2" style="background: rgba(255,215,0,0.1); border-bottom: 1px solid var(--border-color);">
-                                <small style="color: #888;">คู่ที่ ${match.match_number}</small>
-                                ${match.status !== 'pending' ? `<span class="badge bg-${getStatusColor(match.status)} float-end">${getStatusText(match.status)}</span>` : ''}
-                            </div>
-                            <div class="match-body">
-                                <div class="team-row px-3 py-2 ${isWinner1 ? 'bg-success bg-opacity-25' : ''}" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span style="color: ${isWinner1 ? '#fff' : '#aaa'}; font-weight: ${isWinner1 ? '600' : '400'};">
-                                            ${match.team1_name || 'TBD'}
-                                        </span>
-                                        ${isWinner1 ? '<i class="bi bi-trophy-fill text-warning"></i>' : ''}
-                                    </div>
-                                </div>
-                                <div class="team-row px-3 py-2 ${isWinner2 ? 'bg-success bg-opacity-25' : ''}">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span style="color: ${isWinner2 ? '#fff' : '#aaa'}; font-weight: ${isWinner2 ? '600' : '400'};">
-                                            ${match.team2_name || 'TBD'}
-                                        </span>
-                                        ${isWinner2 ? '<i class="bi bi-trophy-fill text-warning"></i>' : ''}
-                                    </div>
-                                </div>
-                            </div>
-                            ${match.match_time ? `
-                                <div class="match-footer px-3 py-1" style="background: rgba(0,0,0,0.3);">
-                                    <small style="color: #888;">
-                                        <i class="bi bi-clock me-1"></i>${new Date(match.match_time).toLocaleString('th-TH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                    </small>
-                                </div>
-                            ` : ''}
-                        </div>
-                    `;
-                });
-                
-                html += '</div></div>';
-                
-                // Add connector line (except for last round)
-                if (roundIndex < 3) {
-                    html += `
-                        <div class="connector-column d-flex align-items-center" style="width: 40px;">
-                            <div style="width: 100%; height: 2px; background: var(--primary-gold); opacity: 0.3;"></div>
-                        </div>
-                    `;
-                }
-            });
-            
-            html += '</div></div>';
-            container.innerHTML = html;
+
+            renderBracket(rounds);
         });
-    
-    function getStatusColor(status) {
-        const map = { pending: 'secondary', ongoing: 'warning', completed: 'success' };
-        return map[status] || 'secondary';
+
+    function normalizeRounds(roundsData) {
+        const knownRounds = preferredRounds.filter(key => Array.isArray(roundsData[key]) && roundsData[key].length > 0);
+        const extraRounds = Object.keys(roundsData)
+            .filter(key => !preferredRounds.includes(key) && Array.isArray(roundsData[key]) && roundsData[key].length > 0)
+            .sort((left, right) => left.localeCompare(right));
+
+        return knownRounds.concat(extraRounds).map((key, index) => ({
+            key: key,
+            label: roundLabels[key] || `รอบที่ ${index + 1}`,
+            matches: roundsData[key].slice().sort((left, right) => (left.match_number || 0) - (right.match_number || 0))
+        }));
     }
-    
+
+    function renderState(type) {
+        const container = document.getElementById('bracketContainer');
+
+        if (type === 'empty') {
+            container.innerHTML = `
+                <div class="state-card">
+                    <i class="bi bi-calendar-x state-icon"></i>
+                    <h4>ยังไม่มีตารางการแข่งขัน</h4>
+                    <p>รอการประกาศคู่แข่งขันจากทางผู้จัดการแข่งขัน</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="state-card">
+                <i class="bi bi-exclamation-circle state-icon is-error"></i>
+                <h4>เกิดข้อผิดพลาด</h4>
+                <p>ไม่สามารถโหลดตารางการแข่งขันได้</p>
+            </div>
+        `;
+    }
+
+    function renderBracket(rounds) {
+        const container = document.getElementById('bracketContainer');
+        let html = '<div class="bracket-board">';
+
+        rounds.forEach((round, index) => {
+            html += `
+                <section class="round-column">
+                    <div class="round-heading">
+                        <span class="round-chip">${escapeHtml(round.label)}</span>
+                        <p class="round-count">${round.matches.length} คู่แข่งขัน</p>
+                    </div>
+                    <div class="matches-stack">
+                        ${round.matches.map(createMatchCard).join('')}
+                    </div>
+                </section>
+            `;
+
+            if (index < rounds.length - 1) {
+                html += `
+                    <div class="round-separator" aria-hidden="true">
+                        <span class="round-separator-line"></span>
+                    </div>
+                `;
+            }
+        });
+
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    function createMatchCard(match) {
+        const statusKey = getStatusKey(match.status);
+        const isWinner1 = match.winner_id && match.winner_id === match.team1_id;
+        const isWinner2 = match.winner_id && match.winner_id === match.team2_id;
+        const meta = [];
+
+        if (match.match_time) {
+            meta.push(`
+                <span class="match-meta-item">
+                    <i class="bi bi-clock me-1"></i>${escapeHtml(formatMatchTime(match.match_time))}
+                </span>
+            `);
+        }
+
+        if (match.stream_url) {
+            meta.push(`
+                <a class="match-meta-link" href="${escapeAttribute(match.stream_url)}" target="_blank" rel="noopener noreferrer">
+                    <i class="bi bi-broadcast me-1"></i>ดูสตรีม
+                </a>
+            `);
+        }
+
+        return `
+            <article class="match-card">
+                <div class="match-header">
+                    <span class="match-number">คู่ที่ ${escapeHtml(String(match.match_number || '-'))}</span>
+                    <span class="match-status ${statusKey}">${getStatusText(statusKey)}</span>
+                </div>
+                <div class="team-row ${isWinner1 ? 'is-winner' : ''} ${!match.team1_id ? 'is-tbd' : ''}">
+                    <span>${escapeHtml(match.team1_name || 'TBD')}</span>
+                    ${isWinner1 ? '<i class="bi bi-trophy-fill"></i>' : ''}
+                </div>
+                <div class="team-row ${isWinner2 ? 'is-winner' : ''} ${!match.team2_id ? 'is-tbd' : ''}">
+                    <span>${escapeHtml(match.team2_name || 'TBD')}</span>
+                    ${isWinner2 ? '<i class="bi bi-trophy-fill"></i>' : ''}
+                </div>
+                ${meta.length ? `<div class="match-meta">${meta.join('')}</div>` : ''}
+            </article>
+        `;
+    }
+
+    function getStatusKey(status) {
+        if (status === 'ongoing' || status === 'completed') {
+            return status;
+        }
+
+        return 'pending';
+    }
+
     function getStatusText(status) {
-        const map = { pending: 'รอแข่ง', ongoing: 'กำลังแข่ง', completed: 'จบแล้ว' };
-        return map[status] || status;
+        const map = {
+            pending: 'รอแข่ง',
+            ongoing: 'กำลังแข่ง',
+            completed: 'จบแล้ว'
+        };
+
+        return map[status] || 'รอแข่ง';
+    }
+
+    function formatMatchTime(value) {
+        return new Date(value).toLocaleString('th-TH', {
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function escapeAttribute(value) {
+        return escapeHtml(value).replace(/`/g, '&#96;');
     }
 </script>
 
 <style>
-    .bracket-wrapper::-webkit-scrollbar {
+    .bracket-wrapper {
+        padding: 32px 20px 56px;
+        overflow-x: auto;
+    }
+
+    .bracket-state {
+        min-height: 320px;
+    }
+
+    .bracket-board {
+        display: flex;
+        align-items: stretch;
+        gap: 20px;
+        min-width: max-content;
+        padding-bottom: 12px;
+    }
+
+    .round-column {
+        width: 320px;
+        flex: 0 0 320px;
+    }
+
+    .round-heading {
+        padding: 18px 20px;
+        margin-bottom: 18px;
+        border: 1px solid rgba(255, 215, 0, 0.24);
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255, 215, 0, 0.12), rgba(20, 18, 10, 0.86));
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+    }
+
+    .round-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 12px;
+        border-radius: 999px;
+        background: rgba(255, 215, 0, 0.16);
+        color: #ffd761;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+    }
+
+    .round-count {
+        margin: 12px 0 0;
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 14px;
+    }
+
+    .matches-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .round-separator {
+        width: 54px;
+        flex: 0 0 54px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .round-separator-line {
+        position: relative;
+        width: 100%;
+        height: 2px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, rgba(255, 215, 0, 0.05), rgba(255, 215, 0, 0.55), rgba(255, 215, 0, 0.05));
+    }
+
+    .round-separator-line::after {
+        content: '';
+        position: absolute;
+        right: -1px;
+        top: 50%;
+        width: 10px;
         height: 10px;
+        border-top: 2px solid rgba(255, 215, 0, 0.7);
+        border-right: 2px solid rgba(255, 215, 0, 0.7);
+        transform: translateY(-50%) rotate(45deg);
     }
-    .bracket-wrapper::-webkit-scrollbar-track {
-        background: rgba(255,255,255,0.1);
-        border-radius: 5px;
+
+    .match-card {
+        overflow: hidden;
+        border: 1px solid rgba(255, 215, 0, 0.18);
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(37, 36, 46, 0.96), rgba(22, 22, 28, 0.96));
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.28);
+        transition: transform 0.2s ease, border-color 0.2s ease;
     }
-    .bracket-wrapper::-webkit-scrollbar-thumb {
-        background: var(--primary-gold);
-        border-radius: 5px;
-    }
+
     .match-card:hover {
-        border-color: var(--primary-gold);
-        transform: scale(1.02);
-        transition: all 0.3s;
+        transform: translateY(-2px);
+        border-color: rgba(255, 215, 0, 0.4);
+    }
+
+    .match-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 215, 0, 0.06);
+    }
+
+    .match-number {
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .match-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 72px;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+    }
+
+    .match-status.pending {
+        background: rgba(108, 117, 125, 0.18);
+        color: #c8cdd2;
+    }
+
+    .match-status.ongoing {
+        background: rgba(255, 193, 7, 0.18);
+        color: #ffd761;
+    }
+
+    .match-status.completed {
+        background: rgba(40, 167, 69, 0.18);
+        color: #6be58d;
+    }
+
+    .team-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 15px 16px;
+        color: #f8f9fa;
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    .team-row + .team-row {
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .team-row.is-winner {
+        background: rgba(40, 167, 69, 0.16);
+        color: #8ef0a6;
+    }
+
+    .team-row.is-tbd {
+        color: rgba(255, 255, 255, 0.36);
+        font-style: italic;
+    }
+
+    .team-row i {
+        color: #ffd761;
+        font-size: 13px;
+        flex-shrink: 0;
+    }
+
+    .match-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 12px;
+        padding: 12px 16px 14px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.12);
+    }
+
+    .match-meta-item,
+    .match-meta-link {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 12px;
+        text-decoration: none;
+    }
+
+    .match-meta-link:hover {
+        color: #ffd761;
+    }
+
+    .state-card {
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 42px 24px;
+        border: 1px solid rgba(255, 215, 0, 0.18);
+        border-radius: 20px;
+        background: linear-gradient(180deg, rgba(37, 36, 46, 0.94), rgba(22, 22, 28, 0.96));
+        text-align: center;
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.24);
+    }
+
+    .state-card h4 {
+        margin-bottom: 10px;
+        color: #f5f5f5;
+    }
+
+    .state-card p {
+        margin-bottom: 0;
+        color: rgba(255, 255, 255, 0.68);
+    }
+
+    .state-icon {
+        display: block;
+        margin-bottom: 16px;
+        color: #ffd761;
+        font-size: 46px;
+    }
+
+    .state-icon.is-error {
+        color: #ff7b7b;
+    }
+
+    .bracket-wrapper::-webkit-scrollbar {
+        height: 12px;
+    }
+
+    .bracket-wrapper::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 999px;
+    }
+
+    .bracket-wrapper::-webkit-scrollbar-thumb {
+        background: rgba(255, 215, 0, 0.5);
+        border-radius: 999px;
+    }
+
+    @media (max-width: 768px) {
+        .bracket-wrapper {
+            padding-inline: 14px;
+        }
+
+        .round-column {
+            width: 280px;
+            flex-basis: 280px;
+        }
+
+        .round-separator {
+            width: 36px;
+            flex-basis: 36px;
+        }
     }
 </style>
