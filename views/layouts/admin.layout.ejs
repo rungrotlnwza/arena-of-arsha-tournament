@@ -7,6 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Brackets Viewer CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/brackets-viewer@latest/dist/brackets-viewer.min.css" />
     <style>
         * { font-family: 'Kanit', sans-serif; }
         
@@ -176,6 +178,8 @@
         <%- body %>
     </main>
 
+    <!-- Brackets Viewer JS -->
+    <script src="https://cdn.jsdelivr.net/npm/brackets-viewer@latest/dist/brackets-viewer.min.js"></script>
     <script>
         function logout() {
             fetch('/api/admin/logout', { method: 'POST' })

@@ -10,14 +10,23 @@
     </div>
 </div>
 
-<!-- Bracket View -->
+<!-- Bracket Container -->
 <div class="admin-card">
-    <div id="bracketContainer">
-        <div class="text-center py-5">
-            <div class="spinner-border text-warning" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
+    <div class="brackets-viewer" id="bracketViewer"></div>
+    
+    <!-- Loading State -->
+    <div id="loadingState" class="text-center py-5">
+        <div class="spinner-border text-warning" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
+        <p class="mt-3 text-muted">กำลังโหลดตารางการแข่งขัน...</p>
+    </div>
+    
+    <!-- No Data State -->
+    <div id="noDataState" class="text-center py-5" style="display: none;">
+        <i class="bi bi-calendar-x fs-1 mb-3 d-block" style="color: var(--primary-gold);"></i>
+        <h4 style="color: #ccc;">ยังไม่มีตารางการแข่งขัน</h4>
+        <p style="color: #888;">คลิก "สร้างตารางอัตโนมัติ" เพื่อสร้างจากทีมที่อนุมัติแล้ว</p>
     </div>
 </div>
 
@@ -35,6 +44,7 @@
                     <label class="form-label">รอบ</label>
                     <select class="form-select bg-dark text-light" id="matchRound">
                         <option value="round_1">รอบ 32 ทีม</option>
+                        <option value="round_2">รอบ 16 ทีม</option>
                         <option value="quarter">รอบ 8 ทีม</option>
                         <option value="semi">รอบรองชนะเลิศ</option>
                         <option value="final">รอบชิงชนะเลิศ</option>
@@ -88,87 +98,149 @@
     </div>
 </div>
 
+<style>
+    .admin-card .brackets-viewer {
+        --background-color: transparent;
+        --match-background: rgba(30, 30, 40, 0.95);
+        --text-color: #fff;
+        --win-color: #28a745;
+        --loss-color: #dc3545;
+        --border-color: rgba(255, 215, 0, 0.3);
+        --primary-color: #ffd700;
+        --secondary-color: #ffed4e;
+    }
+    
+    .admin-card .brackets-viewer {
+        overflow-x: auto;
+        min-height: 500px;
+    }
+</style>
+
 <script>
     let teamsList = [];
     let bracketData = [];
     
-    const roundNames = {
-        round_1: 'รอบ 32 ทีม',
-        quarter: 'รอบ 8 ทีม',
-        semi: 'รอบรองชนะเลิศ',
-        final: 'รอบชิงชนะเลิศ'
-    };
+    const roundOrder = ['round_1', 'round_2', 'quarter', 'semi', 'final'];
     
     // Load bracket and teams
     Promise.all([
         fetch('/api/admin/bracket', { credentials: 'include' }).then(r => r.json()),
         fetch('/api/admin/teams?status=approved', { credentials: 'include' }).then(r => r.json())
     ]).then(([bracketResult, teamsResult]) => {
-        if (bracketResult.success) bracketData = bracketResult.data;
-        if (teamsResult.success) teamsList = teamsResult.data;
-        renderBracket();
-        populateTeamSelects();
-    });
-    
-    function renderBracket() {
-        const container = document.getElementById('bracketContainer');
+        document.getElementById('loadingState').style.display = 'none';
         
-        if (bracketData.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-5 text-muted">
-                    <i class="bi bi-diagram-3 fs-1 mb-3 d-block"></i>
-                    <p>ยังไม่มีตารางแข่งขัน</p>
-                    <button class="btn btn-admin" onclick="generateBracket()">
-                        <i class="bi bi-magic me-2"></i>สร้างตารางอัตโนมัติ
-                    </button>
-                </div>
-            `;
-            return;
+        if (bracketResult.success) {
+            bracketData = bracketResult.data;
+            if (bracketData.length > 0) {
+                renderBracketViewer();
+            } else {
+                document.getElementById('noDataState').style.display = 'block';
+            }
+        } else {
+            document.getElementById('noDataState').style.display = 'block';
         }
         
-        // Group by round
-        const rounds = {};
-        bracketData.forEach(match => {
-            if (!rounds[match.round]) rounds[match.round] = [];
-            rounds[match.round].push(match);
+        if (teamsResult.success) {
+            teamsList = teamsResult.data;
+            populateTeamSelects();
+        }
+    }).catch(() => {
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('noDataState').style.display = 'block';
+    });
+    
+    function renderBracketViewer() {
+        const data = transformDataForViewer(bracketData);
+        
+        window.bracketsViewer.render({
+            stages: data.stages,
+            matches: data.matches,
+            matchGames: data.matchGames,
+            participants: data.participants
+        }, {
+            selector: '#bracketViewer',
+            clear: true,
+            onMatchClick: function (match) {
+                editMatch(match.id);
+            }
+        });
+    }
+    
+    // Transform database data to brackets-viewer format
+    function transformDataForViewer(matches) {
+        const stages = [{
+            id: 0,
+            tournament_id: 0,
+            name: 'Arena of Arsha Tournament 2026',
+            type: 'single_elimination',
+            number: 1,
+            settings: {}
+        }];
+        
+        const transformedMatches = [];
+        const matchGames = [];
+        const participants = [];
+        
+        const participantMap = {};
+        
+        // Collect unique teams
+        matches.forEach(match => {
+            if (match.team1_id && !participantMap[match.team1_id]) {
+                participantMap[match.team1_id] = true;
+                participants.push({
+                    id: match.team1_id,
+                    tournament_id: 0,
+                    name: match.team1_name || 'TBD'
+                });
+            }
+            if (match.team2_id && !participantMap[match.team2_id]) {
+                participantMap[match.team2_id] = true;
+                participants.push({
+                    id: match.team2_id,
+                    tournament_id: 0,
+                    name: match.team2_name || 'TBD'
+                });
+            }
         });
         
-        let html = '<div class="row">';
-        ['round_1', 'quarter', 'semi', 'final'].forEach(round => {
-            if (!rounds[round]) return;
-            
-            html += `
-                <div class="col-md-3 mb-4">
-                    <h6 class="text-center mb-3" style="color: var(--primary-gold);">${roundNames[round]}</h6>
-                    ${rounds[round].map(match => `
-                        <div class="card mb-2 bg-dark" style="border: 1px solid var(--border-color); cursor: pointer;" onclick="editMatch(${match.id})">
-                            <div class="card-body p-2">
-                                <small class="text-muted">คู่ที่ ${match.match_number}</small>
-                                <div class="d-flex justify-content-between align-items-center mt-1">
-                                    <span class="${match.winner_id === match.team1_id ? 'text-success fw-bold' : ''}">
-                                        ${match.team1_name || 'TBD'}
-                                    </span>
-                                    ${match.winner_id === match.team1_id ? '<i class="bi bi-trophy-fill text-warning"></i>' : ''}
-                                </div>
-                                <div class="text-center text-muted my-1">VS</div>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span class="${match.winner_id === match.team2_id ? 'text-success fw-bold' : ''}">
-                                        ${match.team2_name || 'TBD'}
-                                    </span>
-                                    ${match.winner_id === match.team2_id ? '<i class="bi bi-trophy-fill text-warning"></i>' : ''}
-                                </div>
-                                <div class="mt-2">
-                                    <span class="badge bg-${getStatusColor(match.status)}">${getStatusText(match.status)}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
+        // Create matches
+        roundOrder.forEach((round, roundIndex) => {
+            const roundMatches = matches.filter(m => m.round === round);
+            roundMatches.forEach((match, index) => {
+                transformedMatches.push({
+                    id: match.id,
+                    stage_id: 0,
+                    group_id: 0,
+                    round_id: roundIndex,
+                    number: index + 1,
+                    child_count: 0,
+                    status: getMatchStatus(match.status),
+                    opponent1: match.team1_id ? {
+                        id: match.team1_id,
+                        position: index * 2,
+                        score: match.winner_id === match.team1_id ? 1 : (match.winner_id ? 0 : undefined),
+                        result: match.winner_id === match.team1_id ? 'win' : (match.winner_id ? 'loss' : undefined)
+                    } : null,
+                    opponent2: match.team2_id ? {
+                        id: match.team2_id,
+                        position: index * 2 + 1,
+                        score: match.winner_id === match.team2_id ? 1 : (match.winner_id ? 0 : undefined),
+                        result: match.winner_id === match.team2_id ? 'win' : (match.winner_id ? 'loss' : undefined)
+                    } : null
+                });
+            });
         });
-        html += '</div>';
         
-        container.innerHTML = html;
+        return { stages, matches: transformedMatches, matchGames, participants };
+    }
+    
+    function getMatchStatus(status) {
+        const statusMap = {
+            'pending': 2,
+            'ongoing': 3,
+            'completed': 4
+        };
+        return statusMap[status] || 0;
     }
     
     function populateTeamSelects() {
@@ -190,7 +262,6 @@
         document.getElementById('matchStream').value = match.stream_url || '';
         document.getElementById('matchNotes').value = match.notes || '';
         
-        // Update winner options
         updateWinnerOptions();
         document.getElementById('winnerId').value = match.winner_id || '';
         
@@ -198,14 +269,20 @@
     }
     
     function updateWinnerOptions() {
-        const t1 = document.getElementById('team1Id').value;
-        const t2 = document.getElementById('team2Id').value;
-        const t1Name = teamsList.find(t => t.id == t1)?.team_name || 'ทีมที่ 1';
-        const t2Name = teamsList.find(t => t.id == t2)?.team_name || 'ทีมที่ 2';
+        const team1Id = document.getElementById('team1Id').value;
+        const team2Id = document.getElementById('team2Id').value;
+        const team1Name = teamsList.find(t => t.id == team1Id)?.team_name || 'ทีมที่ 1';
+        const team2Name = teamsList.find(t => t.id == team2Id)?.team_name || 'ทีมที่ 2';
         
         let options = '<option value="">-- ยังไม่มี --</option>';
-        if (t1) options += `<option value="${t1}">${t1Name}</option>`;
-        if (t2) options += `<option value="${t2}">${t2Name}</option>`;
+        
+        if (team1Id) {
+            options += `<option value="${team1Id}">${team1Name}</option>`;
+        }
+        
+        if (team2Id) {
+            options += `<option value="${team2Id}">${team2Name}</option>`;
+        }
         
         document.getElementById('winnerId').innerHTML = options;
     }
@@ -276,15 +353,5 @@
                 alert(result.message || 'เกิดข้อผิดพลาด');
             }
         });
-    }
-    
-    function getStatusColor(status) {
-        const map = { pending: 'secondary', ongoing: 'warning', completed: 'success' };
-        return map[status] || 'secondary';
-    }
-    
-    function getStatusText(status) {
-        const map = { pending: 'รอแข่ง', ongoing: 'กำลังแข่ง', completed: 'จบแล้ว' };
-        return map[status] || status;
     }
 </script>
