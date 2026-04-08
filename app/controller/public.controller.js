@@ -1,5 +1,30 @@
 const mysqli = require('../config/mysqli.config');
 
+const getRoundSortValue = (round) => {
+  if (!round) {
+    return 9999;
+  }
+
+  if (round.startsWith('round_')) {
+    const parsedRound = parseInt(round.split('_')[1], 10);
+    return Number.isNaN(parsedRound) ? 999 : parsedRound;
+  }
+
+  if (round === 'quarter') {
+    return 1000;
+  }
+
+  if (round === 'semi') {
+    return 1001;
+  }
+
+  if (round === 'final') {
+    return 1002;
+  }
+
+  return 9000;
+};
+
 module.exports = {
   // ดึงข้อมูลหน้าแรก
   getHomeData: async (req, res) => {
@@ -92,11 +117,18 @@ module.exports = {
          FROM bracket b
          LEFT JOIN teams t1 ON b.team1_id = t1.id
          LEFT JOIN teams t2 ON b.team2_id = t2.id
-         LEFT JOIN teams tw ON b.winner_id = tw.id
-         ORDER BY 
-           FIELD(b.round, 'round_1', 'round_2', 'quarter', 'semi', 'final'),
-           b.match_number`
+         LEFT JOIN teams tw ON b.winner_id = tw.id`
       );
+
+      matches.sort((left, right) => {
+        const roundDiff = getRoundSortValue(left.round) - getRoundSortValue(right.round);
+
+        if (roundDiff !== 0) {
+          return roundDiff;
+        }
+
+        return (left.match_number || 0) - (right.match_number || 0);
+      });
 
       const rounds = {
         round_1: [],
