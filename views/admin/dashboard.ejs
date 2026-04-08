@@ -1,0 +1,129 @@
+<!-- Header -->
+<div class="admin-header">
+    <h4 class="mb-0" style="color: var(--primary-gold);">
+        <i class="bi bi-speedometer2 me-2"></i>Dashboard
+    </h4>
+    <span class="text-muted">ยินดีต้อนรับ, <span id="adminName">Admin</span></span>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="admin-card text-center">
+            <div class="mb-2">
+                <i class="bi bi-people fs-1" style="color: var(--primary-gold);"></i>
+            </div>
+            <h3 id="statTotal" class="mb-1">-</h3>
+            <small class="text-muted">ทีมทั้งหมด</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="admin-card text-center">
+            <div class="mb-2">
+                <i class="bi bi-check-circle fs-1" style="color: #28a745;"></i>
+            </div>
+            <h3 id="statApproved" class="mb-1">-</h3>
+            <small class="text-muted">อนุมัติแล้ว</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="admin-card text-center">
+            <div class="mb-2">
+                <i class="bi bi-clock-history fs-1" style="color: #ffc107;"></i>
+            </div>
+            <h3 id="statPending" class="mb-1">-</h3>
+            <small class="text-muted">รอการตรวจสอบ</small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="admin-card text-center">
+            <div class="mb-2">
+                <i class="bi bi-trophy fs-1" style="color: #17a2b8;"></i>
+            </div>
+            <h3 id="statRemaining" class="mb-1">-</h3>
+            <small class="text-muted">ที่นั่งคงเหลือ</small>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Teams -->
+<div class="admin-card">
+    <h5 class="mb-4" style="color: var(--primary-gold);">
+        <i class="bi bi-clock-history me-2"></i>ทีมที่สมัครล่าสุด
+    </h5>
+    <div class="table-responsive">
+        <table class="table table-dark table-hover">
+            <thead>
+                <tr>
+                    <th>ชื่อทีม</th>
+                    <th>ผู้เล่น 1</th>
+                    <th>ผู้เล่น 2</th>
+                    <th>สถานะ</th>
+                    <th>วันที่สมัคร</th>
+                </tr>
+            </thead>
+            <tbody id="recentTeamsTable">
+                <tr>
+                    <td colspan="5" class="text-center py-4">
+                        <div class="spinner-border text-warning" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="text-center mt-3">
+        <a href="/admin/teams" class="btn btn-admin-outline">
+            <i class="bi bi-list me-2"></i>ดูทีมทั้งหมด
+        </a>
+    </div>
+</div>
+
+<script>
+    // Load dashboard data
+    fetch('/api/admin/dashboard', { credentials: 'include' })
+        .then(res => {
+            if (res.status === 401) {
+                window.location.href = '/admin/login';
+                return;
+            }
+            return res.json();
+        })
+        .then(result => {
+            if (!result || !result.success) return;
+            
+            const stats = result.data.stats;
+            document.getElementById('statTotal').textContent = stats.total;
+            document.getElementById('statApproved').textContent = stats.approved;
+            document.getElementById('statPending').textContent = stats.pending;
+            document.getElementById('statRemaining').textContent = stats.remaining + '/' + stats.maxTeams;
+            
+            // Fill recent teams table
+            const tbody = document.getElementById('recentTeamsTable');
+            if (result.data.recentTeams.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">ยังไม่มีทีมสมัคร</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = result.data.recentTeams.map(team => `
+                <tr>
+                    <td><strong>${escapeHtml(team.team_name)}</strong></td>
+                    <td>${escapeHtml(team.player1_name || '-')}</td>
+                    <td>${escapeHtml(team.player2_name || '-')}</td>
+                    <td><span class="status-badge status-${team.status}">${getStatusText(team.status)}</span></td>
+                    <td>${new Date(team.created_at).toLocaleDateString('th-TH')}</td>
+                </tr>
+            `).join('');
+        });
+    
+    function getStatusText(status) {
+        const map = { pending: 'รอตรวจสอบ', approved: 'อนุมัติ', rejected: 'ปฏิเสธ' };
+        return map[status] || status;
+    }
+    
+    function escapeHtml(text) {
+        if (!text) return '-';
+        return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+</script>

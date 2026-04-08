@@ -1,0 +1,191 @@
+<!-- Header -->
+<div class="admin-header">
+    <h4 class="mb-0" style="color: var(--primary-gold);">
+        <i class="bi bi-people me-2"></i>จัดการทีม
+    </h4>
+    <div>
+        <select id="filterStatus" class="form-select form-select-sm d-inline-block w-auto bg-dark text-light border-secondary" onchange="loadTeams()">
+            <option value="">ทั้งหมด</option>
+            <option value="pending">รอตรวจสอบ</option>
+            <option value="approved">อนุมัติแล้ว</option>
+            <option value="rejected">ปฏิเสธ</option>
+        </select>
+    </div>
+</div>
+
+<!-- Teams Table -->
+<div class="admin-card">
+    <div class="table-responsive">
+        <table class="table table-dark table-hover">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>ชื่อทีม</th>
+                    <th>ผู้เล่น 1</th>
+                    <th>ผู้เล่น 2</th>
+                    <th>สถานะ</th>
+                    <th>การกระทำ</th>
+                </tr>
+            </thead>
+            <tbody id="teamsTable">
+                <tr>
+                    <td colspan="6" class="text-center py-4">
+                        <div class="spinner-border text-warning" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Team Detail Modal -->
+<div class="modal fade" id="teamModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark" style="border: 1px solid var(--border-color);">
+            <div class="modal-header" style="border-color: var(--border-color);">
+                <h5 class="modal-title" style="color: var(--primary-gold);">รายละเอียดทีม</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="teamModalBody">
+                <!-- Content loaded dynamically -->
+            </div>
+            <div class="modal-footer" style="border-color: var(--border-color);">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+                <button type="button" class="btn btn-success" id="btnApprove" onclick="updateStatus('approved')">
+                    <i class="bi bi-check me-1"></i>อนุมัติ
+                </button>
+                <button type="button" class="btn btn-danger" id="btnReject" onclick="updateStatus('rejected')">
+                    <i class="bi bi-x me-1"></i>ปฏิเสธ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentTeamId = null;
+    let teamsData = [];
+    
+    function loadTeams() {
+        const status = document.getElementById('filterStatus').value;
+        const url = status ? `/api/admin/teams?status=${status}` : '/api/admin/teams';
+        
+        fetch(url, { credentials: 'include' })
+            .then(res => {
+                if (res.status === 401) {
+                    window.location.href = '/admin/login';
+                    return;
+                }
+                return res.json();
+            })
+            .then(result => {
+                if (!result || !result.success) return;
+                
+                teamsData = result.data;
+                const tbody = document.getElementById('teamsTable');
+                
+                if (teamsData.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">ไม่พบข้อมูลทีม</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = teamsData.map((team, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><strong>${escapeHtml(team.team_name)}</strong></td>
+                        <td>${escapeHtml(team.player1_name || '-')}</td>
+                        <td>${escapeHtml(team.player2_name || '-')}</td>
+                        <td><span class="status-badge status-${team.status}">${getStatusText(team.status)}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-admin-outline" onclick="showTeamDetail(${team.id})">
+                                <i class="bi bi-eye"></i> ดูรายละเอียด
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            });
+    }
+    
+    function showTeamDetail(teamId) {
+        currentTeamId = teamId;
+        const team = teamsData.find(t => t.id === teamId);
+        if (!team) return;
+        
+        const modalBody = document.getElementById('teamModalBody');
+        modalBody.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 style="color: var(--primary-gold);">ข้อมูลทีม</h6>
+                    <table class="table table-dark table-sm">
+                        <tr><td>ชื่อทีม</td><td>${escapeHtml(team.team_name)}</td></tr>
+                        <tr><td>สถานะ</td><td><span class="status-badge status-${team.status}">${getStatusText(team.status)}</span></td></tr>
+                        <tr><td>สมัครเมื่อ</td><td>${new Date(team.created_at).toLocaleString('th-TH')}</td></tr>
+                        ${team.referral ? `<tr><td>รู้จักจาก</td><td>${escapeHtml(team.referral)}</td></tr>` : ''}
+                        ${team.experience ? `<tr><td>ประสบการณ์</td><td>${escapeHtml(team.experience)}</td></tr>` : ''}
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6 style="color: var(--primary-gold);">ผู้เล่น 1</h6>
+                    <table class="table table-dark table-sm">
+                        <tr><td>ชื่อ</td><td>${escapeHtml(team.player1_name || '-')}</td></tr>
+                        <tr><td>Discord</td><td>${escapeHtml(team.player1_discord || '-')}</td></tr>
+                        <tr><td>BDO Name</td><td>${escapeHtml(team.player1_bdo || '-')}</td></tr>
+                        <tr><td>Family</td><td>${escapeHtml(team.player1_family || '-')}</td></tr>
+                    </table>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <h6 style="color: var(--primary-gold);">ผู้เล่น 2</h6>
+                    <table class="table table-dark table-sm">
+                        <tr><td>ชื่อ</td><td>${escapeHtml(team.player2_name || '-')}</td></tr>
+                        <tr><td>Discord</td><td>${escapeHtml(team.player2_discord || '-')}</td></tr>
+                        <tr><td>BDO Name</td><td>${escapeHtml(team.player2_bdo || '-')}</td></tr>
+                        <tr><td>Family</td><td>${escapeHtml(team.player2_family || '-')}</td></tr>
+                    </table>
+                </div>
+            </div>
+        `;
+        
+        // Show/hide buttons based on current status
+        document.getElementById('btnApprove').style.display = team.status === 'approved' ? 'none' : 'inline-block';
+        document.getElementById('btnReject').style.display = team.status === 'rejected' ? 'none' : 'inline-block';
+        
+        new bootstrap.Modal(document.getElementById('teamModal')).show();
+    }
+    
+    function updateStatus(status) {
+        if (!currentTeamId) return;
+        
+        fetch(`/api/admin/teams/${currentTeamId}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ status })
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                bootstrap.Modal.getInstance(document.getElementById('teamModal')).hide();
+                loadTeams();
+            } else {
+                alert(result.message || 'เกิดข้อผิดพลาด');
+            }
+        });
+    }
+    
+    function getStatusText(status) {
+        const map = { pending: 'รอตรวจสอบ', approved: 'อนุมัติ', rejected: 'ปฏิเสธ' };
+        return map[status] || status;
+    }
+    
+    function escapeHtml(text) {
+        if (!text) return '-';
+        return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    
+    // Load on page load
+    loadTeams();
+</script>

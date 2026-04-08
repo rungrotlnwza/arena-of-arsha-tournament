@@ -7,6 +7,7 @@ router.use(require('./frontend/frontend.routes'));
 
 // Mount API routes
 router.use('/api', require('./api/api.routes'));
+router.use('/api/admin', require('./api/admin.routes')); // Admin API
 
 // 404 handler: API/JSON → JSON response, otherwise render 404 page
 router.use((req, res) => {

@@ -4,9 +4,10 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const expressLayouts = require('express-ejs-layouts');
+const session = require('express-session');
 
 const app = express();
-const port = process.env.PORT || 3002;
+const port = process.env.PORT || 3000;
 
 // View engine
 app.set('view engine', 'ejs');
@@ -17,6 +18,17 @@ app.set('layout', 'false');
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Session for admin
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'arsha2026-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: false, // set to true in production with HTTPS
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 
 // Static: /assets and fallback to assets
 app.use('/assets', express.static(path.join(__dirname, 'assets')));

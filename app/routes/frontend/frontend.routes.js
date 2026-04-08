@@ -47,12 +47,71 @@ router.get('/teams', (req, res) => {
     });
 });
 
+// Teams
+router.get('/teams', (req, res) => {
+    res.render(path.join(__dirname, '../../../views/page/teams.ejs'), {
+        layout: path.join(__dirname, '../../../views/layouts/main.layout.ejs'),
+        title: 'รายชื่อทีม',
+        active: 'teams'
+    });
+});
+
+// Bracket
+router.get('/bracket', (req, res) => {
+    res.render(path.join(__dirname, '../../../views/page/bracket.ejs'), {
+        layout: path.join(__dirname, '../../../views/layouts/main.layout.ejs'),
+        title: 'ตารางการแข่งขัน',
+        active: 'bracket'
+    });
+});
+
 // Live
 router.get('/live', (req, res) => {
     res.render(path.join(__dirname, '../../../views/page/live.ejs'), {
         layout: path.join(__dirname, '../../../views/layouts/main.layout.ejs'),
         title: 'ช่องถ่ายทอดสด',
         active: 'live'
+    });
+});
+
+// Admin Routes
+const { requireAuth } = require('../../middleware/admin.middleware');
+
+router.get('/admin/login', (req, res) => {
+    res.render(path.join(__dirname, '../../../views/admin/login.ejs'), {
+        layout: false
+    });
+});
+
+router.get('/admin/dashboard', requireAuth, (req, res) => {
+    res.render(path.join(__dirname, '../../../views/admin/dashboard.ejs'), {
+        layout: path.join(__dirname, '../../../views/layouts/admin.layout.ejs'),
+        title: 'Dashboard',
+        active: 'dashboard'
+    });
+});
+
+router.get('/admin/teams', requireAuth, (req, res) => {
+    res.render(path.join(__dirname, '../../../views/admin/teams.ejs'), {
+        layout: path.join(__dirname, '../../../views/layouts/admin.layout.ejs'),
+        title: 'จัดการทีม',
+        active: 'teams'
+    });
+});
+
+router.get('/admin/settings', requireAuth, (req, res) => {
+    res.render(path.join(__dirname, '../../../views/admin/settings.ejs'), {
+        layout: path.join(__dirname, '../../../views/layouts/admin.layout.ejs'),
+        title: 'ตั้งค่า',
+        active: 'settings'
+    });
+});
+
+router.get('/admin/bracket', requireAuth, (req, res) => {
+    res.render(path.join(__dirname, '../../../views/admin/bracket.ejs'), {
+        layout: path.join(__dirname, '../../../views/layouts/admin.layout.ejs'),
+        title: 'ตารางแข่งขัน',
+        active: 'bracket'
     });
 });
 

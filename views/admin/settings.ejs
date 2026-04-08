@@ -1,0 +1,165 @@
+<!-- Header -->
+<div class="admin-header">
+    <h4 class="mb-0" style="color: var(--primary-gold);">
+        <i class="bi bi-gear me-2"></i>ตั้งค่าการแข่งขัน
+    </h4>
+</div>
+
+<div class="row">
+    <!-- Tournament Settings -->
+    <div class="col-lg-8">
+        <div class="admin-card">
+            <h5 class="mb-4" style="color: var(--primary-gold);">
+                <i class="bi bi-trophy me-2"></i>ข้อมูลกิจกรรม
+            </h5>
+            <form id="settingsForm">
+                <div class="mb-3">
+                    <label class="form-label">ชื่อกิจกรรม</label>
+                    <input type="text" class="form-control bg-dark text-light" id="tournament_name" required>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">วันที่แข่งขัน</label>
+                        <input type="date" class="form-control bg-dark text-light" id="tournament_date" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">เวลา</label>
+                        <input type="time" class="form-control bg-dark text-light" id="tournament_time">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">สถานที่</label>
+                    <input type="text" class="form-control bg-dark text-light" id="location">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">จำนวนทีมสูงสุด</label>
+                    <input type="number" class="form-control bg-dark text-light" id="max_teams" min="4" max="64">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ลิงก์ถ่ายทอดสด</label>
+                    <input type="url" class="form-control bg-dark text-light" id="stream_url" placeholder="https://twitch.tv/...">
+                </div>
+            </form>
+        </div>
+        
+        <div class="admin-card">
+            <h5 class="mb-4" style="color: var(--primary-gold);">
+                <i class="bi bi-clock me-2"></i>การรับสมัคร
+            </h5>
+            <form id="registrationForm">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">วันเวลาเปิดรับสมัคร</label>
+                        <input type="datetime-local" class="form-control bg-dark text-light" id="registration_start">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">วันเวลาปิดรับสมัคร</label>
+                        <input type="datetime-local" class="form-control bg-dark text-light" id="registration_end">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">สถานะการรับสมัคร</label>
+                    <select class="form-select bg-dark text-light" id="registration_open">
+                        <option value="true">เปิดรับสมัคร</option>
+                        <option value="false">ปิดรับสมัคร</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        
+        <div class="admin-card">
+            <button type="button" class="btn btn-admin w-100" onclick="saveSettings()">
+                <i class="bi bi-save me-2"></i>บันทึกการตั้งค่า
+            </button>
+        </div>
+    </div>
+    
+    <!-- Quick Info -->
+    <div class="col-lg-4">
+        <div class="admin-card">
+            <h5 class="mb-3" style="color: var(--primary-gold);">
+                <i class="bi bi-info-circle me-2"></i>ข้อมูลล่าสุด
+            </h5>
+            <div id="currentSettings" class="text-muted">
+                <p>กำลังโหลด...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentConfig = {};
+    
+    // Load settings
+    fetch('/api/admin/config', { credentials: 'include' })
+        .then(res => {
+            if (res.status === 401) {
+                window.location.href = '/admin/login';
+                return;
+            }
+            return res.json();
+        })
+        .then(result => {
+            if (!result || !result.success) return;
+            
+            currentConfig = result.data;
+            
+            // Fill form
+            document.getElementById('tournament_name').value = currentConfig.tournament_name || '';
+            document.getElementById('tournament_date').value = currentConfig.tournament_date || '';
+            document.getElementById('tournament_time').value = currentConfig.tournament_time || '';
+            document.getElementById('location').value = currentConfig.location || '';
+            document.getElementById('max_teams').value = currentConfig.max_teams || '32';
+            document.getElementById('stream_url').value = currentConfig.stream_url || '';
+            document.getElementById('registration_start').value = formatDateTimeLocal(currentConfig.registration_start);
+            document.getElementById('registration_end').value = formatDateTimeLocal(currentConfig.registration_end);
+            document.getElementById('registration_open').value = currentConfig.registration_open || 'true';
+            
+            // Show current info
+            document.getElementById('currentSettings').innerHTML = `
+                <p><strong>ชื่อ:</strong> ${currentConfig.tournament_name}</p>
+                <p><strong>วันที่:</strong> ${currentConfig.tournament_date}</p>
+                <p><strong>เวลา:</strong> ${currentConfig.tournament_time}</p>
+                <p><strong>สถานที่:</strong> ${currentConfig.location}</p>
+                <p><strong>จำนวนทีม:</strong> ${currentConfig.max_teams}</p>
+                <p><strong>รับสมัคร:</strong> ${currentConfig.registration_open === 'true' ? 'เปิด' : 'ปิด'}</p>
+            `;
+        });
+    
+    function formatDateTimeLocal(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '';
+        return d.toISOString().slice(0, 16);
+    }
+    
+    function saveSettings() {
+        const data = {
+            tournament_name: document.getElementById('tournament_name').value,
+            tournament_date: document.getElementById('tournament_date').value,
+            tournament_time: document.getElementById('tournament_time').value,
+            location: document.getElementById('location').value,
+            max_teams: document.getElementById('max_teams').value,
+            stream_url: document.getElementById('stream_url').value,
+            registration_start: document.getElementById('registration_start').value,
+            registration_end: document.getElementById('registration_end').value,
+            registration_open: document.getElementById('registration_open').value
+        };
+        
+        fetch('/api/admin/config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                alert('บันทึกสำเร็จ');
+                location.reload();
+            } else {
+                alert(result.message || 'เกิดข้อผิดพลาด');
+            }
+        });
+    }
+</script>

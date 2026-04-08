@@ -1,0 +1,290 @@
+<!-- Header -->
+<div class="admin-header">
+    <h4 class="mb-0" style="color: var(--primary-gold);">
+        <i class="bi bi-diagram-3 me-2"></i>ตารางแข่งขัน
+    </h4>
+    <div>
+        <button class="btn btn-admin btn-sm" onclick="generateBracket()">
+            <i class="bi bi-magic me-1"></i>สร้างตารางอัตโนมัติ
+        </button>
+    </div>
+</div>
+
+<!-- Bracket View -->
+<div class="admin-card">
+    <div id="bracketContainer">
+        <div class="text-center py-5">
+            <div class="spinner-border text-warning" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Match Modal -->
+<div class="modal fade" id="matchModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark" style="border: 1px solid var(--border-color);">
+            <div class="modal-header" style="border-color: var(--border-color);">
+                <h5 class="modal-title" style="color: var(--primary-gold);">แก้ไขคู่แข่งขัน</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="matchId">
+                <div class="mb-3">
+                    <label class="form-label">รอบ</label>
+                    <select class="form-select bg-dark text-light" id="matchRound">
+                        <option value="round_1">รอบ 32 ทีม</option>
+                        <option value="quarter">รอบ 8 ทีม</option>
+                        <option value="semi">รอบรองชนะเลิศ</option>
+                        <option value="final">รอบชิงชนะเลิศ</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ทีมที่ 1</label>
+                    <select class="form-select bg-dark text-light" id="team1Id">
+                        <option value="">-- ว่าง --</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ทีมที่ 2</label>
+                    <select class="form-select bg-dark text-light" id="team2Id">
+                        <option value="">-- ว่าง --</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ทีมที่ชนะ</label>
+                    <select class="form-select bg-dark text-light" id="winnerId">
+                        <option value="">-- ยังไม่มี --</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">สถานะ</label>
+                    <select class="form-select bg-dark text-light" id="matchStatus">
+                        <option value="pending">รอแข่ง</option>
+                        <option value="ongoing">กำลังแข่ง</option>
+                        <option value="completed">จบแล้ว</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">เวลาแข่งขัน</label>
+                    <input type="datetime-local" class="form-control bg-dark text-light" id="matchTime">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">ลิงก์ถ่ายทอดสด</label>
+                    <input type="url" class="form-control bg-dark text-light" id="matchStream">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">หมายเหตุ</label>
+                    <textarea class="form-control bg-dark text-light" id="matchNotes" rows="2"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="border-color: var(--border-color);">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-danger" onclick="deleteMatch()" id="btnDelete">ลบ</button>
+                <button type="button" class="btn btn-admin" onclick="saveMatch()">บันทึก</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let teamsList = [];
+    let bracketData = [];
+    
+    const roundNames = {
+        round_1: 'รอบ 32 ทีม',
+        quarter: 'รอบ 8 ทีม',
+        semi: 'รอบรองชนะเลิศ',
+        final: 'รอบชิงชนะเลิศ'
+    };
+    
+    // Load bracket and teams
+    Promise.all([
+        fetch('/api/admin/bracket', { credentials: 'include' }).then(r => r.json()),
+        fetch('/api/admin/teams?status=approved', { credentials: 'include' }).then(r => r.json())
+    ]).then(([bracketResult, teamsResult]) => {
+        if (bracketResult.success) bracketData = bracketResult.data;
+        if (teamsResult.success) teamsList = teamsResult.data;
+        renderBracket();
+        populateTeamSelects();
+    });
+    
+    function renderBracket() {
+        const container = document.getElementById('bracketContainer');
+        
+        if (bracketData.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-diagram-3 fs-1 mb-3 d-block"></i>
+                    <p>ยังไม่มีตารางแข่งขัน</p>
+                    <button class="btn btn-admin" onclick="generateBracket()">
+                        <i class="bi bi-magic me-2"></i>สร้างตารางอัตโนมัติ
+                    </button>
+                </div>
+            `;
+            return;
+        }
+        
+        // Group by round
+        const rounds = {};
+        bracketData.forEach(match => {
+            if (!rounds[match.round]) rounds[match.round] = [];
+            rounds[match.round].push(match);
+        });
+        
+        let html = '<div class="row">';
+        ['round_1', 'quarter', 'semi', 'final'].forEach(round => {
+            if (!rounds[round]) return;
+            
+            html += `
+                <div class="col-md-3 mb-4">
+                    <h6 class="text-center mb-3" style="color: var(--primary-gold);">${roundNames[round]}</h6>
+                    ${rounds[round].map(match => `
+                        <div class="card mb-2 bg-dark" style="border: 1px solid var(--border-color); cursor: pointer;" onclick="editMatch(${match.id})">
+                            <div class="card-body p-2">
+                                <small class="text-muted">คู่ที่ ${match.match_number}</small>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <span class="${match.winner_id === match.team1_id ? 'text-success fw-bold' : ''}">
+                                        ${match.team1_name || 'TBD'}
+                                    </span>
+                                    ${match.winner_id === match.team1_id ? '<i class="bi bi-trophy-fill text-warning"></i>' : ''}
+                                </div>
+                                <div class="text-center text-muted my-1">VS</div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="${match.winner_id === match.team2_id ? 'text-success fw-bold' : ''}">
+                                        ${match.team2_name || 'TBD'}
+                                    </span>
+                                    ${match.winner_id === match.team2_id ? '<i class="bi bi-trophy-fill text-warning"></i>' : ''}
+                                </div>
+                                <div class="mt-2">
+                                    <span class="badge bg-${getStatusColor(match.status)}">${getStatusText(match.status)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        });
+        html += '</div>';
+        
+        container.innerHTML = html;
+    }
+    
+    function populateTeamSelects() {
+        const options = teamsList.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
+        document.getElementById('team1Id').innerHTML = '<option value="">-- ว่าง --</option>' + options;
+        document.getElementById('team2Id').innerHTML = '<option value="">-- ว่าง --</option>' + options;
+    }
+    
+    function editMatch(matchId) {
+        const match = bracketData.find(m => m.id === matchId);
+        if (!match) return;
+        
+        document.getElementById('matchId').value = match.id;
+        document.getElementById('matchRound').value = match.round;
+        document.getElementById('team1Id').value = match.team1_id || '';
+        document.getElementById('team2Id').value = match.team2_id || '';
+        document.getElementById('matchStatus').value = match.status;
+        document.getElementById('matchTime').value = match.match_time ? match.match_time.slice(0, 16) : '';
+        document.getElementById('matchStream').value = match.stream_url || '';
+        document.getElementById('matchNotes').value = match.notes || '';
+        
+        // Update winner options
+        updateWinnerOptions();
+        document.getElementById('winnerId').value = match.winner_id || '';
+        
+        new bootstrap.Modal(document.getElementById('matchModal')).show();
+    }
+    
+    function updateWinnerOptions() {
+        const t1 = document.getElementById('team1Id').value;
+        const t2 = document.getElementById('team2Id').value;
+        const t1Name = teamsList.find(t => t.id == t1)?.team_name || 'ทีมที่ 1';
+        const t2Name = teamsList.find(t => t.id == t2)?.team_name || 'ทีมที่ 2';
+        
+        let options = '<option value="">-- ยังไม่มี --</option>';
+        if (t1) options += `<option value="${t1}">${t1Name}</option>`;
+        if (t2) options += `<option value="${t2}">${t2Name}</option>`;
+        
+        document.getElementById('winnerId').innerHTML = options;
+    }
+    
+    document.getElementById('team1Id').addEventListener('change', updateWinnerOptions);
+    document.getElementById('team2Id').addEventListener('change', updateWinnerOptions);
+    
+    function saveMatch() {
+        const id = document.getElementById('matchId').value;
+        const data = {
+            round: document.getElementById('matchRound').value,
+            team1_id: document.getElementById('team1Id').value || null,
+            team2_id: document.getElementById('team2Id').value || null,
+            winner_id: document.getElementById('winnerId').value || null,
+            status: document.getElementById('matchStatus').value,
+            match_time: document.getElementById('matchTime').value || null,
+            stream_url: document.getElementById('matchStream').value,
+            notes: document.getElementById('matchNotes').value
+        };
+        
+        fetch(`/api/admin/bracket/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                bootstrap.Modal.getInstance(document.getElementById('matchModal')).hide();
+                location.reload();
+            } else {
+                alert(result.message || 'เกิดข้อผิดพลาด');
+            }
+        });
+    }
+    
+    function deleteMatch() {
+        if (!confirm('ยืนยันการลบคู่นี้?')) return;
+        
+        const id = document.getElementById('matchId').value;
+        fetch(`/api/admin/bracket/${id}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                bootstrap.Modal.getInstance(document.getElementById('matchModal')).hide();
+                location.reload();
+            }
+        });
+    }
+    
+    function generateBracket() {
+        if (!confirm('สร้างตารางแข่งขันอัตโนมัติจากทีมที่อนุมัติแล้ว?')) return;
+        
+        fetch('/api/admin/bracket/generate', {
+            method: 'POST',
+            credentials: 'include'
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                alert('สร้างตารางสำเร็จ');
+                location.reload();
+            } else {
+                alert(result.message || 'เกิดข้อผิดพลาด');
+            }
+        });
+    }
+    
+    function getStatusColor(status) {
+        const map = { pending: 'secondary', ongoing: 'warning', completed: 'success' };
+        return map[status] || 'secondary';
+    }
+    
+    function getStatusText(status) {
+        const map = { pending: 'รอแข่ง', ongoing: 'กำลังแข่ง', completed: 'จบแล้ว' };
+        return map[status] || status;
+    }
+</script>

@@ -2,43 +2,58 @@
 <header class="page-header">
     <div class="container">
         <h1 class="page-title"><i class="bi bi-person-plus-fill me-3"></i>สมัครเข้าแข่งขัน</h1>
-        <p class="page-subtitle">กรอกข้อมูลทีมของคุณเพื่อเข้าร่วมการแข่งขัน Arena of Arsha</p>
+        <p class="page-subtitle" id="tournamentSubtitle">กรอกข้อมูลทีมของคุณ</p>
     </div>
 </header>
 
-<!-- Steps Indicator -->
-<div class="container mb-4">
-    <div class="steps-indicator d-flex justify-content-center">
-        <div class="step text-center px-4 active">
-            <div class="step-number d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 50px; height: 50px; border-radius: 50%; background: var(--primary-gold); color: #000; font-weight: 700;">1</div>
-            <div style="color: var(--primary-gold); font-size: 0.9rem;">กรอกข้อมูล</div>
-        </div>
-        <div class="step text-center px-4">
-            <div class="step-number d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 50px; height: 50px; border-radius: 50%; background: rgba(255,215,0,0.2); border: 2px solid var(--primary-gold); color: var(--primary-gold); font-weight: 700;">2</div>
-            <div style="color: #888; font-size: 0.9rem;">ตรวจสอบ</div>
-        </div>
-        <div class="step text-center px-4">
-            <div class="step-number d-flex align-items-center justify-content-center mx-auto mb-2" style="width: 50px; height: 50px; border-radius: 50%; background: rgba(255,215,0,0.2); border: 2px solid var(--primary-gold); color: var(--primary-gold); font-weight: 700;">3</div>
-            <div style="color: #888; font-size: 0.9rem;">ยืนยัน</div>
-        </div>
+<!-- Loading State -->
+<div id="loadingState" class="container py-5 text-center">
+    <div class="spinner-border text-warning" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
+<!-- Closed State -->
+<div id="closedState" class="container py-5" style="display: none;">
+    <div class="text-center py-5" style="background: rgba(30,30,30,0.9); border-radius: 15px; border: 1px solid #444;">
+        <i class="bi bi-lock-fill fs-1 mb-3 d-block" style="color: #888;"></i>
+        <h3 style="color: #ccc;">ปิดรับสมัครแล้ว</h3>
+        <p style="color: #888;">ขออภัย หมดเวลารับสมัครเข้าร่วมการแข่งขัน</p>
+        <a href="/" class="btn btn-outline-custom mt-3">
+            <i class="bi bi-arrow-left me-2"></i>กลับหน้าหลัก
+        </a>
     </div>
 </div>
 
 <!-- Form Container -->
-<div class="form-container mb-5" style="max-width: 800px; margin: 0 auto; padding: 0 20px;">
+<div id="formContainer" class="form-container mb-5" style="max-width: 800px; margin: 0 auto; padding: 0 20px; display: none;">
     <div class="form-card">
+        <!-- Tournament Info -->
+        <div id="tournamentInfo" class="mb-4 p-3" style="background: rgba(255,215,0,0.1); border: 1px solid var(--primary-gold); border-radius: 10px;">
+            <h5 style="color: var(--primary-gold); margin-bottom: 10px;">
+                <i class="bi bi-trophy-fill me-2"></i><span id="tournamentName">Arena of Arsha Tournament 2026</span>
+            </h5>
+            <div class="row">
+                <div class="col-md-6">
+                    <small style="color: #aaa;"><i class="bi bi-calendar3 me-1"></i><span id="tournamentDate">-</span></small>
+                </div>
+                <div class="col-md-6">
+                    <small style="color: #aaa;"><i class="bi bi-geo-alt me-1"></i><span id="tournamentLocation">Online</span></small>
+                </div>
+            </div>
+        </div>
+
         <!-- Info Box -->
         <div class="info-box mb-4">
             <h5><i class="bi bi-info-circle-fill me-2"></i>ก่อนสมัคร โปรดอ่าน</h5>
             <ul>
                 <li>ทีมต้องมีผู้เล่น 2 คน (ผู้เข้าร่วมต้องหาคู่ของตนเองมา)</li>
                 <li>อาชีพของผู้เข้าแข่งขันจะถูกสุ่มโดยระบบของทีมงาน (ผู้เข้าร่วมไม่สามารถเลือกอาชีพได้)</li>
-                <li>วันการแข่งขัน วันที่ 00/00/0000 เวลา 00.00น.</li>
                 <li>หากมีข้อสงสัยเพิ่มเติม กรุณาอ่าน <a href="/rules" style="color: var(--primary-gold);">กติกาการแข่งขัน</a></li>
             </ul>
         </div>
 
-        <form id="registrationForm" action="/register-success" method="GET">
+        <form id="registrationForm">
             <!-- Team Information -->
             <div class="mb-5">
                 <h3 class="form-section-title">
@@ -48,7 +63,7 @@
                     <label for="teamName" class="form-label">
                         ชื่อทีม <span class="required">*</span>
                     </label>
-                    <input type="text" class="form-control" id="teamName" name="teamName" placeholder="ระบุชื่อทีมของคุณ" required>
+                    <input type="text" class="form-control" id="teamName" placeholder="ระบุชื่อทีมของคุณ" required>
                     <div class="form-text">ชื่อทีมต้องไม่หยาบคายและไม่ละเมิดลิขสิทธิ์</div>
                 </div>
             </div>
@@ -63,13 +78,14 @@
                         <label for="player1Name" class="form-label">
                             ชื่อ-นามสกุล <span class="required">*</span>
                         </label>
-                        <input type="text" class="form-control" id="player1Name" name="player1Name" placeholder="ชื่อ นามสกุล" required>
+                        <input type="text" class="form-control" id="player1Name" placeholder="ชื่อ นามสกุล" required>
                     </div>
                     <div class="col-md-6 mb-4">
                         <label for="player1Discord" class="form-label">
                             Discord ID <span class="required">*</span>
                         </label>
-                        <input type="text" class="form-control" id="player1Discord" name="player1Discord" placeholder="example#1234" required>
+                        <input type="text" class="form-control" id="player1Discord" placeholder="example" required>
+                        <div class="form-text">ไอดี Discord ไม่รวม # และตัวเลข</div>
                     </div>
                 </div>
                 <div class="row">
@@ -77,20 +93,14 @@
                         <label for="player1BdoName" class="form-label">
                             ชื่อตัวละครในเกม (BDO) <span class="required">*</span>
                         </label>
-                        <input type="text" class="form-control" id="player1BdoName" name="player1BdoName" placeholder="ชื่อตัวละคร" required>
+                        <input type="text" class="form-control" id="player1BdoName" placeholder="ชื่อตัวละคร" required>
                     </div>
                     <div class="col-md-6 mb-4">
                         <label for="player1Family" class="form-label">
                             Family Name <span class="required">*</span>
                         </label>
-                        <input type="text" class="form-control" id="player1Family" name="player1Family" placeholder="Family Name" required>
+                        <input type="text" class="form-control" id="player1Family" placeholder="Family Name" required>
                     </div>
-                </div>
-                <div class="mb-4">
-                    <label for="player1Email" class="form-label">
-                        อีเมล <span class="required">*</span>
-                    </label>
-                    <input type="email" class="form-control" id="player1Email" name="player1Email" placeholder="email@example.com" required>
                 </div>
             </div>
 
@@ -104,13 +114,14 @@
                         <label for="player2Name" class="form-label">
                             ชื่อ-นามสกุล <span class="required">*</span>
                         </label>
-                        <input type="text" class="form-control" id="player2Name" name="player2Name" placeholder="ชื่อ นามสกุล" required>
+                        <input type="text" class="form-control" id="player2Name" placeholder="ชื่อ นามสกุล" required>
                     </div>
                     <div class="col-md-6 mb-4">
                         <label for="player2Discord" class="form-label">
                             Discord ID <span class="required">*</span>
                         </label>
-                        <input type="text" class="form-control" id="player2Discord" name="player2Discord" placeholder="example#1234" required>
+                        <input type="text" class="form-control" id="player2Discord" placeholder="example" required>
+                        <div class="form-text">ไอดี Discord ไม่รวม # และตัวเลข</div>
                     </div>
                 </div>
                 <div class="row">
@@ -118,20 +129,14 @@
                         <label for="player2BdoName" class="form-label">
                             ชื่อตัวละครในเกม (BDO) <span class="required">*</span>
                         </label>
-                        <input type="text" class="form-control" id="player2BdoName" name="player2BdoName" placeholder="ชื่อตัวละคร" required>
+                        <input type="text" class="form-control" id="player2BdoName" placeholder="ชื่อตัวละคร" required>
                     </div>
                     <div class="col-md-6 mb-4">
                         <label for="player2Family" class="form-label">
                             Family Name <span class="required">*</span>
                         </label>
-                        <input type="text" class="form-control" id="player2Family" name="player2Family" placeholder="Family Name" required>
+                        <input type="text" class="form-control" id="player2Family" placeholder="Family Name" required>
                     </div>
-                </div>
-                <div class="mb-4">
-                    <label for="player2Email" class="form-label">
-                        อีเมล <span class="required">*</span>
-                    </label>
-                    <input type="email" class="form-control" id="player2Email" name="player2Email" placeholder="email@example.com" required>
                 </div>
             </div>
 
@@ -142,11 +147,11 @@
                 </h3>
                 <div class="mb-4">
                     <label for="teamExperience" class="form-label">ประสบการณ์การแข่งขัน (ถ้ามี)</label>
-                    <textarea class="form-control" id="teamExperience" name="teamExperience" rows="3" placeholder="เล่าประสบการณ์การแข่งขันหรือความเชี่ยวชาญของทีมคุณ"></textarea>
+                    <textarea class="form-control" id="teamExperience" rows="3" placeholder="เล่าประสบการณ์การแข่งขันหรือความเชี่ยวชาญของทีมคุณ"></textarea>
                 </div>
                 <div class="mb-4">
                     <label for="referral" class="form-label">รู้จักการแข่งขันนี้จากช่องทางใด</label>
-                    <select class="form-select" id="referral" name="referral">
+                    <select class="form-select" id="referral">
                         <option value="" selected>เลือกช่องทาง</option>
                         <option value="facebook">Facebook</option>
                         <option value="discord">Discord</option>
@@ -160,29 +165,124 @@
             <!-- Agreement -->
             <div class="mb-5">
                 <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" id="agreeRules" name="agreeRules" required>
+                    <input class="form-check-input" type="checkbox" id="agreeRules" required>
                     <label class="form-check-label" for="agreeRules" style="color: #ccc;">
                         ข้าพเจ้าได้อ่านและยอมรับ <a href="/rules" style="color: var(--primary-gold);">กติกาการแข่งขัน</a> ทุกประการ <span class="required">*</span>
                     </label>
                 </div>
                 <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" id="agreeData" name="agreeData" required>
+                    <input class="form-check-input" type="checkbox" id="agreeData" required>
                     <label class="form-check-label" for="agreeData" style="color: #ccc;">
                         ยินยอมให้เก็บข้อมูลส่วนตัวเพื่อใช้ในการติดต่อเกี่ยวกับการแข่งขัน <span class="required">*</span>
                     </label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="agreeLive" name="agreeLive">
+                    <input class="form-check-input" type="checkbox" id="agreeLive">
                     <label class="form-check-label" for="agreeLive" style="color: #ccc;">
                         ยินยอมให้ถ่ายทอดสดและเผยแพร่การแข่งขัน (การตอบคำถามนี้ไม่มีผลต่อการคัดเลือก)
                     </label>
                 </div>
             </div>
 
+            <!-- Error Message -->
+            <div id="errorMessage" class="alert alert-danger mb-4" style="display: none;"></div>
+
             <!-- Submit Button -->
-            <button type="submit" class="btn btn-custom w-100" style="padding: 18px; font-size: 1.2rem; font-weight: 700;">
+            <button type="submit" class="btn btn-custom w-100" id="submitBtn" style="padding: 18px; font-size: 1.2rem; font-weight: 700;">
                 <i class="bi bi-send-fill me-2"></i> ยืนยันการสมัคร
             </button>
         </form>
     </div>
 </div>
+
+<script>
+    // Load config
+    fetch('/api/config', { credentials: 'include', method: 'GET' })
+        .then(res => res.json())
+        .then(result => {
+            document.getElementById('loadingState').style.display = 'none';
+            
+            if (!result.success) {
+                showClosedState();
+                return;
+            }
+
+            const config = result.data;
+
+            // Check if registration is open
+            if (config.registration_open === 'false') {
+                showClosedState();
+                return;
+            }
+
+            // Show form
+            document.getElementById('formContainer').style.display = 'block';
+            
+            // Fill tournament info
+            document.getElementById('tournamentName').textContent = config.tournament_name || 'Arena of Arsha Tournament 2026';
+            const dateStr = config.tournament_date ? new Date(config.tournament_date).toLocaleDateString('th-TH') : '-';
+            const timeStr = config.tournament_time || '';
+            document.getElementById('tournamentDate').textContent = dateStr + (timeStr ? ' ' + timeStr : '');
+            document.getElementById('tournamentLocation').textContent = config.location || 'Online';
+        });
+
+    function showClosedState() {
+        document.getElementById('closedState').style.display = 'block';
+    }
+
+    // Form submission
+    document.getElementById('registrationForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const errorDiv = document.getElementById('errorMessage');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        errorDiv.style.display = 'none';
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังสมัคร...';
+
+        const data = {
+            team_name: document.getElementById('teamName').value.trim(),
+            players: [
+                {
+                    full_name: document.getElementById('player1Name').value.trim(),
+                    discord_id: document.getElementById('player1Discord').value.trim(),
+                    bdo_name: document.getElementById('player1BdoName').value.trim(),
+                    family_name: document.getElementById('player1Family').value.trim()
+                },
+                {
+                    full_name: document.getElementById('player2Name').value.trim(),
+                    discord_id: document.getElementById('player2Discord').value.trim(),
+                    bdo_name: document.getElementById('player2BdoName').value.trim(),
+                    family_name: document.getElementById('player2Family').value.trim()
+                }
+            ],
+            experience: document.getElementById('teamExperience').value.trim() || null,
+            referral: document.getElementById('referral').value || null,
+            agree_live: document.getElementById('agreeLive').checked
+        };
+
+        fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                window.location.href = '/register-success?team=' + encodeURIComponent(data.team_name);
+            } else {
+                errorDiv.textContent = result.message || 'เกิดข้อผิดพลาด';
+                errorDiv.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="bi bi-send-fill me-2"></i> ยืนยันการสมัคร';
+            }
+        })
+        .catch(() => {
+            errorDiv.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
+            errorDiv.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-send-fill me-2"></i> ยืนยันการสมัคร';
+        });
+    });
+</script>

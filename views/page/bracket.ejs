@@ -1,0 +1,157 @@
+<!-- Page Header -->
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title"><i class="bi bi-diagram-3 me-3"></i>ตารางการแข่งขัน</h1>
+        <p class="page-subtitle">Arena of Arsha Tournament 2026 - Tournament Bracket</p>
+    </div>
+</header>
+
+<!-- Bracket View -->
+<div class="container-fluid py-5">
+    <div id="bracketContainer">
+        <div class="text-center py-5">
+            <div class="spinner-border text-warning" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const roundNames = {
+        round_1: 'รอบ 32 ทีม',
+        quarter: 'รอบ 8 ทีม (Quarter Final)',
+        semi: 'รอบรองชนะเลิศ (Semi Final)',
+        final: 'รอบชิงชนะเลิศ (Final)'
+    };
+    
+    fetch('/api/bracket', { credentials: 'include', method: 'GET' })
+        .then(res => res.json())
+        .then(result => {
+            const container = document.getElementById('bracketContainer');
+            
+            if (!result.success) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-exclamation-circle fs-1 mb-3 d-block" style="color: #dc3545;"></i>
+                        <h4 style="color: #ccc;">เกิดข้อผิดพลาด</h4>
+                        <p style="color: #888;">ไม่สามารถโหลดตารางการแข่งขันได้</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const rounds = result.data;
+            const hasData = Object.values(rounds).some(matches => matches.length > 0);
+            
+            if (!hasData) {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="bi bi-calendar-x fs-1 mb-3 d-block" style="color: var(--primary-gold);"></i>
+                        <h4 style="color: #ccc;">ยังไม่มีตารางการแข่งขัน</h4>
+                        <p style="color: #888;">รอการประกาศตารางจากทางผู้จัดการแข่งขัน</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Build bracket view
+            let html = '<div class="bracket-wrapper" style="overflow-x: auto;">';
+            html += '<div class="d-flex justify-content-center" style="min-width: 1200px; padding: 20px;">';
+            
+            ['round_1', 'quarter', 'semi', 'final'].forEach((round, roundIndex) => {
+                const matches = rounds[round] || [];
+                if (matches.length === 0) return;
+                
+                html += `
+                    <div class="round-column mx-3" style="width: 280px;">
+                        <h5 class="text-center mb-4" style="color: var(--primary-gold); font-weight: 700;">
+                            ${roundNames[round]}
+                        </h5>
+                        <div class="matches-container" style="display: flex; flex-direction: column; justify-content: space-around; height: ${matches.length * 150}px;">
+                `;
+                
+                matches.forEach(match => {
+                    const isWinner1 = match.winner_id === match.team1_id;
+                    const isWinner2 = match.winner_id === match.team2_id;
+                    
+                    html += `
+                        <div class="match-card mb-3" style="background: rgba(30,30,30,0.95); border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden;">
+                            <div class="match-header px-3 py-2" style="background: rgba(255,215,0,0.1); border-bottom: 1px solid var(--border-color);">
+                                <small style="color: #888;">คู่ที่ ${match.match_number}</small>
+                                ${match.status !== 'pending' ? `<span class="badge bg-${getStatusColor(match.status)} float-end">${getStatusText(match.status)}</span>` : ''}
+                            </div>
+                            <div class="match-body">
+                                <div class="team-row px-3 py-2 ${isWinner1 ? 'bg-success bg-opacity-25' : ''}" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span style="color: ${isWinner1 ? '#fff' : '#aaa'}; font-weight: ${isWinner1 ? '600' : '400'};">
+                                            ${match.team1_name || 'TBD'}
+                                        </span>
+                                        ${isWinner1 ? '<i class="bi bi-trophy-fill text-warning"></i>' : ''}
+                                    </div>
+                                </div>
+                                <div class="team-row px-3 py-2 ${isWinner2 ? 'bg-success bg-opacity-25' : ''}">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span style="color: ${isWinner2 ? '#fff' : '#aaa'}; font-weight: ${isWinner2 ? '600' : '400'};">
+                                            ${match.team2_name || 'TBD'}
+                                        </span>
+                                        ${isWinner2 ? '<i class="bi bi-trophy-fill text-warning"></i>' : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            ${match.match_time ? `
+                                <div class="match-footer px-3 py-1" style="background: rgba(0,0,0,0.3);">
+                                    <small style="color: #888;">
+                                        <i class="bi bi-clock me-1"></i>${new Date(match.match_time).toLocaleString('th-TH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    </small>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                
+                html += '</div></div>';
+                
+                // Add connector line (except for last round)
+                if (roundIndex < 3) {
+                    html += `
+                        <div class="connector-column d-flex align-items-center" style="width: 40px;">
+                            <div style="width: 100%; height: 2px; background: var(--primary-gold); opacity: 0.3;"></div>
+                        </div>
+                    `;
+                }
+            });
+            
+            html += '</div></div>';
+            container.innerHTML = html;
+        });
+    
+    function getStatusColor(status) {
+        const map = { pending: 'secondary', ongoing: 'warning', completed: 'success' };
+        return map[status] || 'secondary';
+    }
+    
+    function getStatusText(status) {
+        const map = { pending: 'รอแข่ง', ongoing: 'กำลังแข่ง', completed: 'จบแล้ว' };
+        return map[status] || status;
+    }
+</script>
+
+<style>
+    .bracket-wrapper::-webkit-scrollbar {
+        height: 10px;
+    }
+    .bracket-wrapper::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.1);
+        border-radius: 5px;
+    }
+    .bracket-wrapper::-webkit-scrollbar-thumb {
+        background: var(--primary-gold);
+        border-radius: 5px;
+    }
+    .match-card:hover {
+        border-color: var(--primary-gold);
+        transform: scale(1.02);
+        transition: all 0.3s;
+    }
+</style>
