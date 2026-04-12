@@ -112,16 +112,25 @@
 
 <script>
     // Stage switching
+    const stageIds = {
+        'knockout': { content: 'stageKnockout', tab: 'tabKnockout' },
+        'roundrobin': { content: 'stageRoundRobin', tab: 'tabRoundRobin' },
+        'finals': { content: 'stageFinals', tab: 'tabFinals' }
+    };
+    
     function showStage(stage) {
+        const ids = stageIds[stage];
+        if (!ids) return;
+        
         document.querySelectorAll('.stage-content').forEach(el => el.style.display = 'none');
         document.querySelectorAll('[id^="tab"]').forEach(el => {
             el.classList.remove('btn-custom');
             el.classList.add('btn-outline-custom');
         });
         
-        document.getElementById('stage' + stage.charAt(0).toUpperCase() + stage.slice(1)).style.display = 'block';
-        document.getElementById('tab' + stage.charAt(0).toUpperCase() + stage.slice(1)).classList.remove('btn-outline-custom');
-        document.getElementById('tab' + stage.charAt(0).toUpperCase() + stage.slice(1)).classList.add('btn-custom');
+        document.getElementById(ids.content).style.display = 'block';
+        document.getElementById(ids.tab).classList.remove('btn-outline-custom');
+        document.getElementById(ids.tab).classList.add('btn-custom');
     }
 
     // Load bracket data
