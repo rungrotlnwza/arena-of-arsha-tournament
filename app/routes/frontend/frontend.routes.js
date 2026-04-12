@@ -81,13 +81,13 @@ router.get('/live', (req, res) => {
 });
 
 router.get('/admin/login', (req, res) => {
-    res.render(path.join(__dirname, '../../../views/admin/login.ejs'), {
+    res.render(path.join(__dirname, '../../../views/page/admin/login.ejs'), {
         layout: false
     });
 });
 
 router.get('/admin/dashboard', redirectAdminLogin, jwtMiddleware.verifyToken, jwtMiddleware.requireRole('admin'), (req, res) => {
-    res.render(path.join(__dirname, '../../../views/admin/dashboard.ejs'), {
+    res.render(path.join(__dirname, '../../../views/page/admin/dashboard.ejs'), {
         layout: path.join(__dirname, '../../../views/layouts/admin.layout.ejs'),
         title: 'Dashboard',
         active: 'dashboard'
@@ -95,7 +95,7 @@ router.get('/admin/dashboard', redirectAdminLogin, jwtMiddleware.verifyToken, jw
 });
 
 router.get('/admin/teams', redirectAdminLogin, jwtMiddleware.verifyToken, jwtMiddleware.requireRole('admin'), (req, res) => {
-    res.render(path.join(__dirname, '../../../views/admin/teams.ejs'), {
+    res.render(path.join(__dirname, '../../../views/page/admin/teams.ejs'), {
         layout: path.join(__dirname, '../../../views/layouts/admin.layout.ejs'),
         title: 'จัดการทีม',
         active: 'teams'
@@ -103,7 +103,7 @@ router.get('/admin/teams', redirectAdminLogin, jwtMiddleware.verifyToken, jwtMid
 });
 
 router.get('/admin/settings', redirectAdminLogin, jwtMiddleware.verifyToken, jwtMiddleware.requireRole('admin'), (req, res) => {
-    res.render(path.join(__dirname, '../../../views/admin/settings.ejs'), {
+    res.render(path.join(__dirname, '../../../views/page/admin/settings.ejs'), {
         layout: path.join(__dirname, '../../../views/layouts/admin.layout.ejs'),
         title: 'ตั้งค่า',
         active: 'settings'
@@ -111,7 +111,7 @@ router.get('/admin/settings', redirectAdminLogin, jwtMiddleware.verifyToken, jwt
 });
 
 router.get('/admin/bracket', redirectAdminLogin, jwtMiddleware.verifyToken, jwtMiddleware.requireRole('admin'), (req, res) => {
-    res.render(path.join(__dirname, '../../../views/admin/bracket.ejs'), {
+    res.render(path.join(__dirname, '../../../views/page/admin/bracket.ejs'), {
         layout: path.join(__dirname, '../../../views/layouts/admin.layout.ejs'),
         title: 'ตารางแข่งขัน',
         active: 'bracket'
