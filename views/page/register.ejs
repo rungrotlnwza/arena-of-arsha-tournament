@@ -66,7 +66,7 @@
                         ชื่อทีม <span class="required">*</span>
                     </label>
                     <input type="text" class="form-control" id="teamName" placeholder="ระบุชื่อทีมของคุณ" required>
-                    <div class="form-text">ชื่อทีมต้องไม่หยาบคายและไม่ละเมิดลิขสิทธิ์</div>
+                    <div class="form-text">ชื่อทีมต้องไม่หยาบคาย</div>
                 </div>
             </div>
 
@@ -76,19 +76,13 @@
                     <i class="bi bi-person-fill"></i> ข้อมูลผู้เล่น 1
                 </h3>
                 <div class="row">
-                    <div class="col-md-4 mb-4">
+                    <div class="col-md-6 mb-4">
                         <label for="player1Family" class="form-label">
                             Family Name <span class="required">*</span>
                         </label>
                         <input type="text" class="form-control" id="player1Family" placeholder="Family Name" required>
                     </div>
-                    <div class="col-md-4 mb-4">
-                        <label for="player1BdoName" class="form-label">
-                            ชื่อตัวละครในเกม <span class="required">*</span>
-                        </label>
-                        <input type="text" class="form-control" id="player1BdoName" placeholder="ชื่อตัวละคร" required>
-                    </div>
-                    <div class="col-md-4 mb-4">
+                    <div class="col-md-6 mb-4">
                         <label for="player1Discord" class="form-label">
                             Discord ID <span class="required">*</span>
                         </label>
@@ -104,19 +98,13 @@
                     <i class="bi bi-person-fill"></i> ข้อมูลผู้เล่น 2 (คู่ทีม)
                 </h3>
                 <div class="row">
-                    <div class="col-md-4 mb-4">
+                    <div class="col-md-6 mb-4">
                         <label for="player2Family" class="form-label">
                             Family Name <span class="required">*</span>
                         </label>
                         <input type="text" class="form-control" id="player2Family" placeholder="Family Name" required>
                     </div>
-                    <div class="col-md-4 mb-4">
-                        <label for="player2BdoName" class="form-label">
-                            ชื่อตัวละครในเกม <span class="required">*</span>
-                        </label>
-                        <input type="text" class="form-control" id="player2BdoName" placeholder="ชื่อตัวละคร" required>
-                    </div>
-                    <div class="col-md-4 mb-4">
+                    <div class="col-md-6 mb-4">
                         <label for="player2Discord" class="form-label">
                             Discord ID <span class="required">*</span>
                         </label>
@@ -187,7 +175,7 @@
         .then(res => res.json())
         .then(result => {
             document.getElementById('loadingState').style.display = 'none';
-            
+
             if (!result.success) {
                 showClosedState();
                 return;
@@ -203,7 +191,7 @@
 
             // Show form
             document.getElementById('formContainer').style.display = 'block';
-            
+
             // Fill tournament info
             document.getElementById('tournamentName').textContent = config.tournament_name || 'Arena of Arsha Tournament 2026';
             const dateStr = config.tournament_date ? new Date(config.tournament_date).toLocaleDateString('th-TH') : '-';
@@ -242,12 +230,12 @@
     }
 
     // Form submission
-    document.getElementById('registrationForm').addEventListener('submit', function(e) {
+    document.getElementById('registrationForm').addEventListener('submit', function (e) {
         e.preventDefault();
-        
+
         const errorDiv = document.getElementById('errorMessage');
         const submitBtn = document.getElementById('submitBtn');
-        
+
         errorDiv.style.display = 'none';
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>กำลังสมัคร...';
@@ -257,12 +245,10 @@
             players: [
                 {
                     family_name: document.getElementById('player1Family').value.trim(),
-                    bdo_name: document.getElementById('player1BdoName').value.trim(),
                     discord_id: document.getElementById('player1Discord').value.trim()
                 },
                 {
                     family_name: document.getElementById('player2Family').value.trim(),
-                    bdo_name: document.getElementById('player2BdoName').value.trim(),
                     discord_id: document.getElementById('player2Discord').value.trim()
                 }
             ],
@@ -276,27 +262,27 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         })
-        .then(res => res.json())
-        .then(result => {
-            if (result.success) {
-                let successUrl = '/register-success?team=' + encodeURIComponent(result.data.team_name || data.team_name);
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    let successUrl = '/register-success?team=' + encodeURIComponent(result.data.team_name || data.team_name);
 
-                if (result.data && result.data.reserve_position) {
-                    successUrl += '&reserve=' + encodeURIComponent(result.data.reserve_position);
+                    if (result.data && result.data.reserve_position) {
+                        successUrl += '&reserve=' + encodeURIComponent(result.data.reserve_position);
+                    }
+
+                    window.location.href = successUrl;
+                } else {
+                    errorDiv.textContent = result.message || 'เกิดข้อผิดพลาด';
+                    errorDiv.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="bi bi-send-fill me-2"></i> ยืนยันการสมัคร';
                 }
-
-                window.location.href = successUrl;
-            } else {
-                errorDiv.textContent = result.message || 'เกิดข้อผิดพลาด';
+            }, () => {
+                errorDiv.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
                 errorDiv.style.display = 'block';
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="bi bi-send-fill me-2"></i> ยืนยันการสมัคร';
-            }
-        }, () => {
-            errorDiv.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
-            errorDiv.style.display = 'block';
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="bi bi-send-fill me-2"></i> ยืนยันการสมัคร';
-        });
+            });
     });
 </script>
