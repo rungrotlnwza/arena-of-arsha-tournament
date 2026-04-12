@@ -165,77 +165,95 @@
             // `;
 
             // Update registration status
-            const regStatus = document.getElementById('registrationStatus');
-            const registerBtn = document.getElementById('registerBtn');
+            updateRegistrationStatus(reg);
             
-            // คำนวณเวลา countdown
-            const now = new Date();
-            const regStart = reg.start ? new Date(reg.start) : null;
-            const regEnd = reg.end ? new Date(reg.end) : null;
-            
-            if (reg.status === 'upcoming' && regStart) {
-                // ยังไม่ถึงเวลา - แสดง countdown
-                const diff = regStart - now;
-                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                
-                regStatus.innerHTML = `
-                    <div class="mb-2"><span class="badge bg-warning fs-6" style="color: #000;">เร็วๆ นี้</span></div>
-                    <div class="d-flex justify-content-center gap-2 mb-2">
-                        <div class="text-center">
-                            <div class="fs-4 fw-bold" style="color: var(--primary-gold);">${String(days).padStart(2,'0')}</div>
-                            <small class="text-light">วัน</small>
-                        </div>
-                        <div class="text-center">
-                            <div class="fs-4 fw-bold" style="color: var(--primary-gold);">${String(hours).padStart(2,'0')}</div>
-                            <small class="text-light">ชม.</small>
-                        </div>
-                        <div class="text-center">
-                            <div class="fs-4 fw-bold" style="color: var(--primary-gold);">${String(minutes).padStart(2,'0')}</div>
-                            <small class="text-light">นาที</small>
-                        </div>
-                    </div>
-                    <small class="text-light">เปิดรับสมัคร ${regStart.toLocaleString('th-TH', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</small>
-                `;
-                if (registerBtn) {
-                    registerBtn.classList.add('disabled');
-                    registerBtn.innerHTML = '<i class="bi bi-clock me-2"></i>รอเปิดรับสมัคร';
-                }
-            } else if (reg.status === 'open') {
-                // เปิดรับสมัคร
-                regStatus.innerHTML = `
-                    <div class="mb-2"><span class="badge bg-success fs-6">เปิดรับสมัคร</span></div>
-                    <div class="progress mb-2" style="height: 20px; width: 300px; margin: 0 auto;">
-                        <div class="progress-bar bg-warning" style="width: ${(reg.approved_teams / reg.max_teams) * 100}%; color: #000;">
-                            ${reg.approved_teams}/${reg.max_teams}
-                        </div>
-                    </div>
-                    <small class="text-light">เหลือ ${reg.remaining} ทีม</small>
-                    ${regEnd ? `<small class="d-block text-muted mt-1">ปิดรับสมัคร ${regEnd.toLocaleString('th-TH', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</small>` : ''}
-                `;
-            } else if (reg.status === 'full') {
-                // ทีมเต็ม
-                regStatus.innerHTML = `
-                    <div class="mb-2"><span class="badge bg-danger fs-6">ทีมเต็ม</span></div>
-                    <p class="text-light mb-0">รับสมัครครบ ${reg.max_teams} ทีมแล้ว</p>
-                `;
-                if (registerBtn) {
-                    registerBtn.classList.add('disabled');
-                    registerBtn.innerHTML = '<i class="bi bi-lock-fill me-2"></i>ทีมเต็ม';
-                }
-            } else {
-                // ปิดรับสมัคร (ended หรืออื่นๆ)
-                regStatus.innerHTML = `
-                    <div class="mb-2"><span class="badge bg-secondary fs-6">ปิดรับสมัคร</span></div>
-                    <p class="text-light mb-0">ขอบคุณทุกทีมที่ให้ความสนใจ</p>
-                `;
-                if (registerBtn) {
-                    registerBtn.classList.add('disabled');
-                    registerBtn.innerHTML = '<i class="bi bi-lock-fill me-2"></i>ปิดรับสมัคร';
-                }
+            // อัปเดต countdown ทุกวินาทีถ้ายังไม่ถึงเวลา
+            if (reg.status === 'upcoming') {
+                setInterval(() => {
+                    updateRegistrationStatus(reg);
+                }, 1000);
             }
         });
+
+    function updateRegistrationStatus(reg) {
+        const regStatus = document.getElementById('registrationStatus');
+        const registerBtn = document.getElementById('registerBtn');
+        const now = new Date();
+        const regStart = reg.start ? new Date(reg.start) : null;
+        const regEnd = reg.end ? new Date(reg.end) : null;
+        
+        if (reg.status === 'upcoming' && regStart) {
+            // ยังไม่ถึงเวลา - แสดง countdown
+            const diff = regStart - now;
+            if (diff <= 0) {
+                location.reload();
+                return;
+            }
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            regStatus.innerHTML = `
+                <div class="mb-2"><span class="badge bg-warning fs-6" style="color: #000;">เร็วๆ นี้</span></div>
+                <div class="d-flex justify-content-center gap-2 mb-2 flex-wrap">
+                    <div class="text-center">
+                        <div class="fs-4 fw-bold countdown-number" style="color: var(--primary-gold);">${String(days).padStart(2,'0')}</div>
+                        <small class="text-light">วัน</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="fs-4 fw-bold countdown-number" style="color: var(--primary-gold);">${String(hours).padStart(2,'0')}</div>
+                        <small class="text-light">ชม.</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="fs-4 fw-bold countdown-number" style="color: var(--primary-gold);">${String(minutes).padStart(2,'0')}</div>
+                        <small class="text-light">นาที</small>
+                    </div>
+                    <div class="text-center">
+                        <div class="fs-4 fw-bold countdown-number" style="color: var(--primary-gold);">${String(seconds).padStart(2,'0')}</div>
+                        <small class="text-light">วิ</small>
+                    </div>
+                </div>
+                <small class="text-light">เปิดรับสมัคร ${regStart.toLocaleString('th-TH', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</small>
+            `;
+            if (registerBtn) {
+                registerBtn.classList.add('disabled');
+                registerBtn.innerHTML = '<i class="bi bi-clock me-2"></i>รอเปิดรับสมัคร';
+            }
+        } else if (reg.status === 'open') {
+            // เปิดรับสมัคร
+            regStatus.innerHTML = `
+                <div class="mb-2"><span class="badge bg-success fs-6">เปิดรับสมัคร</span></div>
+                <div class="progress mb-2" style="height: 20px; width: 300px; margin: 0 auto;">
+                    <div class="progress-bar bg-warning" style="width: ${(reg.approved_teams / reg.max_teams) * 100}%; color: #000;">
+                        ${reg.approved_teams}/${reg.max_teams}
+                    </div>
+                </div>
+                <small class="text-light">เหลือ ${reg.remaining} ทีม</small>
+                ${regEnd ? `<small class="d-block text-muted mt-1">ปิดรับสมัคร ${regEnd.toLocaleString('th-TH', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</small>` : ''}
+            `;
+        } else if (reg.status === 'full') {
+            // ทีมเต็ม
+            regStatus.innerHTML = `
+                <div class="mb-2"><span class="badge bg-danger fs-6">ทีมเต็ม</span></div>
+                <p class="text-light mb-0">รับสมัครครบ ${reg.max_teams} ทีมแล้ว</p>
+            `;
+            if (registerBtn) {
+                registerBtn.classList.add('disabled');
+                registerBtn.innerHTML = '<i class="bi bi-lock-fill me-2"></i>ทีมเต็ม';
+            }
+        } else {
+            // ปิดรับสมัคร (ended หรืออื่นๆ)
+            regStatus.innerHTML = `
+                <div class="mb-2"><span class="badge bg-secondary fs-6">ปิดรับสมัคร</span></div>
+                <p class="text-light mb-0">ขอบคุณทุกทีมที่ให้ความสนใจ</p>
+            `;
+            if (registerBtn) {
+                registerBtn.classList.add('disabled');
+                registerBtn.innerHTML = '<i class="bi bi-lock-fill me-2"></i>ปิดรับสมัคร';
+            }
+        }
+    }
 </script>
 
 <style>
