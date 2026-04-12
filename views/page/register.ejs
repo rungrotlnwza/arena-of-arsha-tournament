@@ -192,19 +192,33 @@
     function updateCapacityNotice(config) {
         const capacityNotice = document.getElementById('capacityNotice');
         const maxTeams = parseInt(config.max_teams || '32', 10);
-        const activeTeams = parseInt(config.active_teams || '0', 10);
-        const nextReservePosition = parseInt(config.next_reserve_position || '0', 10);
+        const approvedTeams = parseInt(config.approved_teams || '0', 10);
 
-        if (activeTeams >= maxTeams && nextReservePosition > 0) {
+        // แสดงจำนวนทีมที่เหลือ
+        if (approvedTeams >= maxTeams) {
             capacityNotice.style.display = 'block';
-            capacityNotice.style.background = 'rgba(255, 193, 7, 0.12)';
-            capacityNotice.style.border = '1px solid rgba(255, 193, 7, 0.45)';
+            capacityNotice.style.background = 'rgba(220, 53, 69, 0.2)';
+            capacityNotice.style.border = '1px solid rgba(220, 53, 69, 0.5)';
             capacityNotice.innerHTML = `
-                <h5 style="color: #ffd761; margin-bottom: 10px;">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>ทีมหลักครบแล้ว
+                <h5 style="color: #ff6b6b; margin-bottom: 10px;">
+                    <i class="bi bi-lock-fill me-2"></i>ปิดรับสมัครแล้ว
                 </h5>
                 <p style="color: #ddd; margin-bottom: 0;">
-                    หากสมัครตอนนี้ ทีมของคุณจะถูกจัดเป็นทีมสำรองลำดับที่ <strong>${nextReservePosition}</strong>
+                    ทีมเข้าแข่งขันครบจำนวน ${maxTeams} ทีมแล้ว
+                </p>
+            `;
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').innerHTML = '<i class="bi bi-lock-fill me-2"></i>ปิดรับสมัคร';
+        } else {
+            capacityNotice.style.display = 'block';
+            capacityNotice.style.background = 'rgba(25, 135, 84, 0.2)';
+            capacityNotice.style.border = '1px solid rgba(25, 135, 84, 0.5)';
+            capacityNotice.innerHTML = `
+                <h5 style="color: #75b798; margin-bottom: 10px;">
+                    <i class="bi bi-check-circle-fill me-2"></i>เปิดรับสมัคร
+                </h5>
+                <p style="color: #ddd; margin-bottom: 0;">
+                    รับสมัคร ${maxTeams} ทีม (อนุมัติแล้ว ${approvedTeams} ทีม / เหลืออีก ${config.remaining_slots} ทีม)
                 </p>
             `;
         }
@@ -258,13 +272,7 @@
             .then(res => res.json())
             .then(result => {
                 if (result.success) {
-                    let successUrl = '/register-success?team=' + encodeURIComponent(result.data.team_name || data.team_name);
-
-                    if (result.data && result.data.reserve_position) {
-                        successUrl += '&reserve=' + encodeURIComponent(result.data.reserve_position);
-                    }
-
-                    window.location.href = successUrl;
+                    window.location.href = '/register-success?team=' + encodeURIComponent(result.data.team_name || data.team_name);
                 } else {
                     errorDiv.textContent = result.message || 'เกิดข้อผิดพลาด';
                     errorDiv.style.display = 'block';

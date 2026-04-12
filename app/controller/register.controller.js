@@ -1,9 +1,9 @@
 const mysqli = require('../config/mysqli.config');
 
-const getActiveTeamsCount = async (conn) => {
+const getApprovedTeamsCount = async (conn) => {
   const [rows] = await conn.query(
-    'SELECT COUNT(*) as count FROM teams WHERE status IN (?, ?)',
-    ['pending', 'approved']
+    'SELECT COUNT(*) as count FROM teams WHERE status = ?',
+    ['approved']
   );
 
   return rows[0]?.count || 0;
@@ -53,6 +53,15 @@ module.exports = {
 
       const maxTeams = parseInt(maxRows[0]?.config_value || '32', 10);
 
+      // ตรวจสอบจำนวนทีมที่อนุมัติแล้ว
+      const approvedCount = await getApprovedTeamsCount(conn);
+      if (approvedCount >= maxTeams) {
+        return res.status(400).json({
+          success: false,
+          message: 'ปิดรับสมัครแล้ว (ทีมเข้าแข่งขันครบจำนวน 32 ทีม)'
+        });
+      }
+
       // เริ่ม transaction
       await conn.beginTransaction();
 
@@ -78,10 +87,6 @@ module.exports = {
       );
 
       const teamId = teamResult.insertId;
-      const [queueRows] = await conn.query(
-        'SELECT COUNT(*) as count FROM teams WHERE status IN (?, ?) AND id <= ?',
-        ['pending', 'approved', teamId]
-      );
 
       // เพิ่มผู้เล่น 2 คน
       for (let i = 0; i < players.length; i++) {
@@ -109,20 +114,12 @@ module.exports = {
 
       await conn.commit();
 
-      const queuePosition = queueRows[0]?.count || 0;
-      const reservePosition = queuePosition > maxTeams ? queuePosition - maxTeams : null;
-
       res.status(201).json({
         success: true,
-        message: reservePosition
-          ? `สมัครสำเร็จ ทีมของคุณอยู่ในลำดับทีมสำรองที่ ${reservePosition}`
-          : 'สมัครสำเร็จ',
+        message: 'สมัครสำเร็จ รอการตรวจสอบจากทีมงาน',
         data: {
           team_id: teamId,
           team_name: team_name,
-          queue_position: queuePosition,
-          reserve_position: reservePosition,
-          is_reserve: Boolean(reservePosition),
           max_teams: maxTeams
         }
       });
@@ -153,13 +150,11 @@ module.exports = {
       });
 
       const maxTeams = parseInt(config.max_teams || '32', 10);
-      const activeTeams = await getActiveTeamsCount(mysqli);
-      const nextReservePosition = activeTeams >= maxTeams ? (activeTeams - maxTeams) + 1 : null;
+      const approvedTeams = await getApprovedTeamsCount(mysqli);
 
       config.max_teams = maxTeams;
-      config.active_teams = activeTeams;
-      config.next_reserve_position = nextReservePosition;
-      config.remaining_slots = Math.max(maxTeams - activeTeams, 0);
+      config.approved_teams = approvedTeams;
+      config.remaining_slots = Math.max(maxTeams - approvedTeams, 0);
 
       res.json({
         success: true,

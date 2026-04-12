@@ -17,11 +17,6 @@
                 โปรดติดตามประกาศรายชื่อทีมและอาชีพที่สุ่มได้ในภายหลัง
             </p>
 
-            <div id="reserveNotice" class="alert alert-warning mb-4" style="display: none; background: rgba(255,193,7,0.12); border-color: rgba(255,193,7,0.45); color: #ddd;">
-                <i class="bi bi-hourglass-split me-2" style="color: var(--primary-gold);"></i>
-                <span id="reserveText"></span>
-            </div>
-
             <div class="alert alert-warning mb-4" style="background: rgba(255,193,7,0.1); border-color: var(--primary-gold); color: #ccc;">
                 <i class="bi bi-info-circle-fill me-2" style="color: var(--primary-gold);"></i>
                 <strong style="color: var(--primary-gold);">สำคัญ:</strong>
@@ -43,14 +38,7 @@
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     const team = urlParams.get('team');
-    const reserve = parseInt(urlParams.get('reserve') || '0', 10);
     if (team) {
         document.getElementById('teamName').textContent = team;
-    }
-
-    if (reserve > 0) {
-        document.getElementById('reserveNotice').style.display = 'block';
-        document.getElementById('reserveText').innerHTML = `ทีมของคุณอยู่ในรายชื่อทีมสำรองลำดับที่ <strong>${reserve}</strong> หากมีทีมสละสิทธิ์หรือไม่ผ่านการยืนยัน ทีมงานจะเรียกตามลำดับต่อไป`;
-        document.getElementById('successMessage').innerHTML = 'ทีมของคุณได้ลงทะเบียนเรียบร้อยแล้ว<br>สถานะปัจจุบันเป็นทีมสำรอง กรุณาติดตามประกาศจากทีมงานอย่างใกล้ชิด';
     }
 </script>
