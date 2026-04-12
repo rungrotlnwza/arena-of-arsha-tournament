@@ -13,21 +13,14 @@
             <div class="col-lg-10">
                 <!-- Stream Container -->
                 <div class="stream-container mb-4" style="background: #000; border-radius: 15px; overflow: hidden; border: 2px solid var(--primary-gold);">
-                    <iframe 
-                        id="twitchStream"
-                        src="" 
-                        frameborder="0" 
-                        allowfullscreen="true" 
-                        scrolling="no" 
-                        height="500" 
-                        width="100%">
+                    <iframe id="twitchStream" src="" frameborder="0" allowfullscreen="true" scrolling="no" height="500" width="100%">
                     </iframe>
                 </div>
 
                 <script>
                     // Set Twitch embed parent dynamically based on current hostname
                     const hostname = window.location.hostname || 'localhost';
-                    document.getElementById('twitchStream').src = 
+                    document.getElementById('twitchStream').src =
                         'https://player.twitch.tv/?channel=nhon_thestar&parent=' + hostname;
                 </script>
 

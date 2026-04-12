@@ -19,7 +19,7 @@
         </div>
 
         <div class="mt-5">
-            <a href="/live" class="live-badge-large text-decoration-none">
+            <a href="https://twitch.tv/nhon_thestar" target="_blank" class="live-badge-large text-decoration-none">
                 <span class=" bi bi-twitch me-3" style="font-size: larger;"></span>
                 Live Stream Nhon_TheStar
             </a>
@@ -166,7 +166,7 @@
 
             // Update registration status
             updateRegistrationStatus(reg);
-            
+
             // อัปเดต countdown ทุกวินาทีถ้ายังไม่ถึงเวลา
             if (reg.status === 'upcoming') {
                 setInterval(() => {
@@ -180,7 +180,7 @@
         const now = new Date();
         const regStart = reg.start ? new Date(reg.start) : null;
         const regEnd = reg.end ? new Date(reg.end) : null;
-        
+
         if (reg.status === 'upcoming' && regStart) {
             // ยังไม่ถึงเวลา - แสดง countdown
             const diff = regStart - now;
@@ -192,28 +192,28 @@
             const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-            
+
             regStatus.innerHTML = `
                 <div class="mb-2"><span class="badge bg-warning fs-6" style="color: #000;">เร็วๆ นี้</span></div>
                 <div class="d-flex justify-content-center gap-2 mb-2 flex-wrap">
                     <div class="text-center">
-                        <div class="fs-4 fw-bold countdown-number" style="color: var(--primary-gold);">${String(days).padStart(2,'0')}</div>
+                        <div class="fs-4 fw-bold countdown-number" style="color: var(--primary-gold);">${String(days).padStart(2, '0')}</div>
                         <small class="text-light">วัน</small>
                     </div>
                     <div class="text-center">
-                        <div class="fs-4 fw-bold countdown-number" style="color: var(--primary-gold);">${String(hours).padStart(2,'0')}</div>
+                        <div class="fs-4 fw-bold countdown-number" style="color: var(--primary-gold);">${String(hours).padStart(2, '0')}</div>
                         <small class="text-light">ชม.</small>
                     </div>
                     <div class="text-center">
-                        <div class="fs-4 fw-bold countdown-number" style="color: var(--primary-gold);">${String(minutes).padStart(2,'0')}</div>
+                        <div class="fs-4 fw-bold countdown-number" style="color: var(--primary-gold);">${String(minutes).padStart(2, '0')}</div>
                         <small class="text-light">นาที</small>
                     </div>
                     <div class="text-center">
-                        <div class="fs-4 fw-bold countdown-number" style="color: var(--primary-gold);">${String(seconds).padStart(2,'0')}</div>
+                        <div class="fs-4 fw-bold countdown-number" style="color: var(--primary-gold);">${String(seconds).padStart(2, '0')}</div>
                         <small class="text-light">วิ</small>
                     </div>
                 </div>
-                <small class="text-light">เปิดรับสมัคร ${regStart.toLocaleString('th-TH', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</small>
+                <small class="text-light">เปิดรับสมัคร ${regStart.toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</small>
             `;
         } else if (reg.status === 'open') {
             // เปิดรับสมัคร
@@ -225,7 +225,7 @@
                     </div>
                 </div>
                 <small class="text-light">เหลือ ${reg.remaining} ทีม</small>
-                ${regEnd ? `<small class="d-block text-muted mt-1">ปิดรับสมัคร ${regEnd.toLocaleString('th-TH', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</small>` : ''}
+                ${regEnd ? `<small class="d-block text-muted mt-1">ปิดรับสมัคร ${regEnd.toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</small>` : ''}
             `;
         } else if (reg.status === 'full') {
             // ทีมเต็ม
