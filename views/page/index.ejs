@@ -31,16 +31,17 @@
 <section class="py-5" style="background: rgba(0, 0, 0, 0.5);">
     <div class="container">
         <h2 class="text-center mb-5" style="color: var(--primary-gold); font-weight: 700;">
-            <i class="bi bi-trophy-fill me-2"></i>Arena of Arsha Tournament 2026
+            <i class="bi bi-trophy-fill me-2"></i>Arena of Arsha The All Random Tournament
+            <p class="mt-3">รับสมัครสูงสุด 32 ทีม</p>
         </h2>
 
-        <div class="row g-4 justify-content-center" id="infoContainer">
+        <!-- <div class="row g-4 justify-content-center" id="infoContainer">
             <div class="col-md-4 text-center">
                 <div class="spinner-border text-warning" role="status">
                     <span class="visually-hidden">Loading...</span>
                 </div>
             </div>
-        </div>
+        </div> -->
 
         <div class="text-center mt-5">
             <div class="d-inline-block p-4 rounded" style="background: rgba(255,215,0,0.1); border: 1px solid var(--primary-gold);">
@@ -130,32 +131,27 @@
             }
 
             // Update info cards
-            document.getElementById('infoContainer').innerHTML = `
-                <div class="col-md-3 col-6 text-center">
-                    <div class="p-3 rounded" style="background: rgba(255,215,0,0.1); border: 1px solid var(--primary-gold);">
-                        <div class="fs-2 fw-bold" style="color: var(--primary-gold);">${reg.approved_teams}</div>
-                        <small class="text-light">ทีมที่สมัคร</small>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6 text-center">
-                    <div class="p-3 rounded" style="background: rgba(255,215,0,0.1); border: 1px solid var(--primary-gold);">
-                        <div class="fs-2 fw-bold" style="color: var(--primary-gold);">${reg.max_teams}</div>
-                        <small class="text-light">ทีมสูงสุด</small>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6 text-center">
-                    <div class="p-3 rounded" style="background: rgba(255,215,0,0.1); border: 1px solid var(--primary-gold);">
-                        <div class="fs-2 fw-bold" style="color: var(--primary-gold);">${reg.remaining}</div>
-                        <small class="text-light">ที่นั่งเหลือ</small>
-                    </div>
-                </div>
-                <div class="col-md-3 col-6 text-center">
-                    <div class="p-3 rounded" style="background: rgba(255,215,0,0.1); border: 1px solid var(--primary-gold);">
-                        <div class="fs-2 fw-bold" style="color: var(--primary-gold);">${parseInt(tournament.prize_first).toLocaleString()}</div>
-                        <small class="text-light">รางวัลที่ 1 (บาท)</small>
-                    </div>
-                </div>
-            `;
+            // document.getElementById('infoContainer').innerHTML = `
+
+            //     <div class="col-md-3 col-6 text-center">
+            //         <div class="p-3 rounded" style="background: rgba(255,215,0,0.1); border: 1px solid var(--primary-gold);">
+            //             <div class="fs-2 fw-bold" style="color: var(--primary-gold);">${reg.max_teams}</div>
+            //             <small class="text-light">ทีมสูงสุด</small>
+            //         </div>
+            //     </div>
+            //     <div class="col-md-3 col-6 text-center">
+            //         <div class="p-3 rounded" style="background: rgba(255,215,0,0.1); border: 1px solid var(--primary-gold);">
+            //             <div class="fs-2 fw-bold" style="color: var(--primary-gold);">${reg.remaining}</div>
+            //             <small class="text-light">ที่นั่งเหลือ</small>
+            //         </div>
+            //     </div>
+            //     <div class="col-md-3 col-6 text-center">
+            //         <div class="p-3 rounded" style="background: rgba(255,215,0,0.1); border: 1px solid var(--primary-gold);">
+            //             <div class="fs-2 fw-bold" style="color: var(--primary-gold);">${parseInt(tournament.prize_first).toLocaleString()}</div>
+            //             <small class="text-light">รางวัลที่ 1 (บาท)</small>
+            //         </div>
+            //     </div>
+            // `;
 
             // Update registration status
             const regStatus = document.getElementById('registrationStatus');
