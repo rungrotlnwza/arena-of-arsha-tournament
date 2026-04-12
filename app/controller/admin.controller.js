@@ -481,6 +481,50 @@ module.exports = {
     }
   },
 
+  // Delete Team
+  deleteTeam: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { password } = req.body;
+      const adminId = req.user?.id;
+
+      if (!password) {
+        return res.status(400).json({
+          success: false,
+          message: 'กรุณากรอกรหัสผ่าน'
+        });
+      }
+
+      // Verify admin password
+      const [adminRows] = await mysqli.query(
+        'SELECT * FROM admins WHERE id = ?',
+        [adminId]
+      );
+
+      if (adminRows.length === 0 || adminRows[0].password !== password) {
+        return res.status(401).json({
+          success: false,
+          message: 'รหัสผ่านไม่ถูกต้อง'
+        });
+      }
+
+      // Delete team (players will be deleted automatically via CASCADE)
+      await mysqli.query('DELETE FROM teams WHERE id = ?', [id]);
+
+      res.json({
+        success: true,
+        message: 'ลบทีมสำเร็จ'
+      });
+
+    } catch (error) {
+      console.error('Delete team error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'เกิดข้อผิดพลาด'
+      });
+    }
+  },
+
   // Get Config
   getConfig: async (req, res) => {
     try {

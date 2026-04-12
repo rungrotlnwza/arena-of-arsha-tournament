@@ -53,6 +53,9 @@
             </div>
             <div class="modal-footer" style="border-color: var(--border-color);">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+                <button type="button" class="btn btn-outline-danger" id="btnDelete" onclick="showDeleteConfirm()">
+                    <i class="bi bi-trash me-1"></i>ลบทีม
+                </button>
                 <button type="button" class="btn btn-success" id="btnApprove" onclick="updateStatus('approved')">
                     <i class="bi bi-check me-1"></i>อนุมัติ
                 </button>
@@ -165,6 +168,35 @@
         document.getElementById('btnReject').style.display = team.status === 'rejected' ? 'none' : 'inline-block';
         
         new bootstrap.Modal(document.getElementById('teamModal')).show();
+    }
+    
+    function showDeleteConfirm() {
+        const password = prompt('กรุณากรอกรหัสผ่านเพื่อยืนยันการลบทีม:');
+        if (password && password.trim() !== '') {
+            deleteTeam(password.trim());
+        }
+    }
+    
+    function deleteTeam(password) {
+        if (!currentTeamId) return;
+        
+        fetch(`/api/admin/teams/${currentTeamId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ password })
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                bootstrap.Modal.getInstance(document.getElementById('teamModal')).hide();
+                loadTeams();
+                alert('ลบทีมสำเร็จ');
+            } else {
+                alert(result.message || 'เกิดข้อผิดพลาด');
+            }
+        });
+    }
     }
     
     function updateStatus(status) {

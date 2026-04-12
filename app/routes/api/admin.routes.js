@@ -12,6 +12,7 @@ router.post('/logout', jwtMiddleware.authenticate, adminController.logout);
 router.get('/dashboard', jwtMiddleware.authenticate, jwtMiddleware.requireRoleApi('admin'), adminController.getDashboard);
 router.get('/teams', jwtMiddleware.authenticate, jwtMiddleware.requireRoleApi('admin'), adminController.getTeams);
 router.put('/teams/:id/status', jwtMiddleware.authenticate, jwtMiddleware.requireRoleApi('admin'), adminController.updateTeamStatus);
+router.delete('/teams/:id', jwtMiddleware.authenticate, jwtMiddleware.requireRoleApi('admin'), adminController.deleteTeam);
 router.get('/config', jwtMiddleware.authenticate, jwtMiddleware.requireRoleApi('admin'), adminController.getConfig);
 router.put('/config', jwtMiddleware.authenticate, jwtMiddleware.requireRoleApi('admin'), adminController.updateConfig);
 router.get('/bracket', jwtMiddleware.authenticate, jwtMiddleware.requireRoleApi('admin'), adminController.getBracket);
