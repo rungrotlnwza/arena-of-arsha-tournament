@@ -177,7 +177,6 @@
 
     function updateRegistrationStatus(reg) {
         const regStatus = document.getElementById('registrationStatus');
-        const registerBtn = document.getElementById('registerBtn');
         const now = new Date();
         const regStart = reg.start ? new Date(reg.start) : null;
         const regEnd = reg.end ? new Date(reg.end) : null;
@@ -216,10 +215,6 @@
                 </div>
                 <small class="text-light">เปิดรับสมัคร ${regStart.toLocaleString('th-TH', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'})}</small>
             `;
-            if (registerBtn) {
-                registerBtn.classList.add('disabled');
-                registerBtn.innerHTML = '<i class="bi bi-clock me-2"></i>รอเปิดรับสมัคร';
-            }
         } else if (reg.status === 'open') {
             // เปิดรับสมัคร
             regStatus.innerHTML = `
@@ -238,20 +233,12 @@
                 <div class="mb-2"><span class="badge bg-danger fs-6">ทีมเต็ม</span></div>
                 <p class="text-light mb-0">รับสมัครครบ ${reg.max_teams} ทีมแล้ว</p>
             `;
-            if (registerBtn) {
-                registerBtn.classList.add('disabled');
-                registerBtn.innerHTML = '<i class="bi bi-lock-fill me-2"></i>ทีมเต็ม';
-            }
         } else {
             // ปิดรับสมัคร (ended หรืออื่นๆ)
             regStatus.innerHTML = `
                 <div class="mb-2"><span class="badge bg-secondary fs-6">ปิดรับสมัคร</span></div>
                 <p class="text-light mb-0">ขอบคุณทุกทีมที่ให้ความสนใจ</p>
             `;
-            if (registerBtn) {
-                registerBtn.classList.add('disabled');
-                registerBtn.innerHTML = '<i class="bi bi-lock-fill me-2"></i>ปิดรับสมัคร';
-            }
         }
     }
 </script>
