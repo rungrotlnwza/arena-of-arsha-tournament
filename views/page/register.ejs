@@ -25,6 +25,37 @@
     </div>
 </div>
 
+<!-- Countdown State - รอเปิดรับสมัคร -->
+<div id="countdownState" class="container py-5" style="display: none;">
+    <div class="text-center py-5" style="background: rgba(30,30,30,0.9); border-radius: 15px; border: 1px solid var(--primary-gold);">
+        <i class="bi bi-hourglass-split fs-1 mb-3 d-block" style="color: var(--primary-gold);"></i>
+        <h3 style="color: var(--primary-gold);">เปิดรับสมัครเร็วๆ นี้</h3>
+        <p style="color: #aaa;" id="countdownText">กำลังนับถอยหลัง...</p>
+        <div class="d-flex justify-content-center gap-3 mt-4" id="countdownTimer">
+            <div class="text-center">
+                <div class="countdown-box" id="countdownDays">00</div>
+                <small style="color: #888;">วัน</small>
+            </div>
+            <div class="text-center">
+                <div class="countdown-box" id="countdownHours">00</div>
+                <small style="color: #888;">ชั่วโมง</small>
+            </div>
+            <div class="text-center">
+                <div class="countdown-box" id="countdownMinutes">00</div>
+                <small style="color: #888;">นาที</small>
+            </div>
+            <div class="text-center">
+                <div class="countdown-box" id="countdownSeconds">00</div>
+                <small style="color: #888;">วินาที</small>
+            </div>
+        </div>
+        <p class="mt-4" style="color: #888;" id="registrationPeriod"></p>
+        <a href="/" class="btn btn-outline-custom mt-3">
+            <i class="bi bi-arrow-left me-2"></i>กลับหน้าหลัก
+        </a>
+    </div>
+</div>
+
 <!-- Form Container -->
 <div id="formContainer" class="form-container mb-5" style="max-width: 800px; margin: 0 auto; padding: 0 20px; display: none;">
     <div class="form-card">
@@ -164,7 +195,23 @@
 
             const config = result.data;
 
-            // Check if registration is open
+            const now = new Date();
+            const registrationStart = config.registration_start ? new Date(config.registration_start) : null;
+            const registrationEnd = config.registration_end ? new Date(config.registration_end) : null;
+
+            // ตรวจสอบว่ายังไม่ถึงเวลาเปิดรับสมัคร
+            if (registrationStart && now < registrationStart) {
+                showCountdown(registrationStart, registrationEnd);
+                return;
+            }
+
+            // ตรวจสอบว่าหมดเวลารับสมัครแล้ว
+            if (registrationEnd && now > registrationEnd) {
+                showClosedState();
+                return;
+            }
+
+            // Check if registration is open (manual switch)
             if (config.registration_open === 'false') {
                 showClosedState();
                 return;
@@ -185,9 +232,83 @@
             showClosedState();
         });
 
+    function showCountdown(startDate, endDate) {
+        const countdownState = document.getElementById('countdownState');
+        countdownState.style.display = 'block';
+
+        // แสดงช่วงเวลารับสมัคร
+        const startStr = startDate.toLocaleString('th-TH', { 
+            year: 'numeric', month: 'long', day: 'numeric', 
+            hour: '2-digit', minute: '2-digit' 
+        });
+        const endStr = endDate ? endDate.toLocaleString('th-TH', { 
+            year: 'numeric', month: 'long', day: 'numeric', 
+            hour: '2-digit', minute: '2-digit' 
+        }) : '';
+        document.getElementById('registrationPeriod').textContent = 
+            `รับสมัคร: ${startStr}${endStr ? ' - ' + endStr : ''}`;
+
+        // อัปเดต countdown ทุกวินาที
+        updateCountdownTimer(startDate);
+        const countdownInterval = setInterval(() => {
+            const isFinished = updateCountdownTimer(startDate);
+            if (isFinished) {
+                clearInterval(countdownInterval);
+                location.reload();
+            }
+        }, 1000);
+    }
+
+    function updateCountdownTimer(targetDate) {
+        const now = new Date();
+        const diff = targetDate - now;
+
+        if (diff <= 0) {
+            return true; // นับถอยหลังเสร็จแล้ว
+        }
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        document.getElementById('countdownDays').textContent = String(days).padStart(2, '0');
+        document.getElementById('countdownHours').textContent = String(hours).padStart(2, '0');
+        document.getElementById('countdownMinutes').textContent = String(minutes).padStart(2, '0');
+        document.getElementById('countdownSeconds').textContent = String(seconds).padStart(2, '0');
+
+        return false;
+    }
+
     function showClosedState() {
         document.getElementById('closedState').style.display = 'block';
     }
+
+    // Styles for countdown
+    const countdownStyles = document.createElement('style');
+    countdownStyles.textContent = `
+        .countdown-box {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid var(--primary-gold);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-gold);
+        }
+        @media (max-width: 576px) {
+            .countdown-box {
+                width: 55px;
+                height: 55px;
+                font-size: 1.4rem;
+            }
+        }
+    `;
+    document.head.appendChild(countdownStyles);
 
     function updateCapacityNotice(config) {
         const capacityNotice = document.getElementById('capacityNotice');

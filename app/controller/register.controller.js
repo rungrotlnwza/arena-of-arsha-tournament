@@ -140,8 +140,8 @@ module.exports = {
   getConfig: async (req, res) => {
     try {
       const [rows] = await mysqli.query(
-        'SELECT config_key, config_value FROM config WHERE config_key IN (?, ?, ?, ?, ?, ?)',
-        ['tournament_name', 'tournament_date', 'tournament_time', 'location', 'registration_open', 'max_teams']
+        'SELECT config_key, config_value FROM config WHERE config_key IN (?, ?, ?, ?, ?, ?, ?, ?)',
+        ['tournament_name', 'tournament_date', 'tournament_time', 'location', 'registration_open', 'registration_start', 'registration_end', 'max_teams']
       );
 
       const config = {};
