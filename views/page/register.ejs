@@ -114,28 +114,6 @@
                 </div>
             </div>
 
-            <!-- Additional Information -->
-            <div class="mb-5">
-                <h3 class="form-section-title">
-                    <i class="bi bi-chat-square-text-fill"></i> ข้อมูลเพิ่มเติม
-                </h3>
-                <div class="mb-4">
-                    <label for="teamExperience" class="form-label">ประสบการณ์การแข่งขัน (ถ้ามี)</label>
-                    <textarea class="form-control" id="teamExperience" rows="3" placeholder="เล่าประสบการณ์การแข่งขันหรือความเชี่ยวชาญของทีมคุณ"></textarea>
-                </div>
-                <div class="mb-4">
-                    <label for="referral" class="form-label">รู้จักการแข่งขันนี้จากช่องทางใด</label>
-                    <select class="form-select" id="referral">
-                        <option value="" selected>เลือกช่องทาง</option>
-                        <option value="facebook">Facebook</option>
-                        <option value="discord">Discord</option>
-                        <option value="twitch">Twitch</option>
-                        <option value="friend">เพื่อนแนะนำ</option>
-                        <option value="other">อื่นๆ</option>
-                    </select>
-                </div>
-            </div>
-
             <!-- Agreement -->
             <div class="mb-5">
                 <div class="form-check mb-3">
@@ -252,8 +230,6 @@
                     discord_id: document.getElementById('player2Discord').value.trim()
                 }
             ],
-            experience: document.getElementById('teamExperience').value.trim() || null,
-            referral: document.getElementById('referral').value || null,
             agree_live: document.getElementById('agreeLive').checked
         };
 
