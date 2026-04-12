@@ -25,6 +25,14 @@ module.exports = {
         });
       }
 
+      // ตรวจสอบว่ายอมรับเงื่อนไขทั้ง 3 รายการ
+      if (!agree_discord || !agree_rules || !agree_live) {
+        return res.status(400).json({
+          success: false,
+          message: 'กรุณายอมรับเงื่อนไขทั้งหมดก่อนสมัคร (เข้าร่วม Discord, ยอมรับกติกา, และยินยอมถ่ายทอดสด)'
+        });
+      }
+
       // ตรวจสอบว่าเปิดรับสมัครอยู่หรือไม่
       const [configRows] = await conn.query(
         'SELECT config_value FROM config WHERE config_key = ?',
