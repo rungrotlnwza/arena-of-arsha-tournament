@@ -197,6 +197,7 @@ body::before {
 }
 
 .live-badge-large {
+    /* font-size: large; */
     display: inline-flex;
     align-items: center;
     background: rgba(255, 0, 0, 0.2);
