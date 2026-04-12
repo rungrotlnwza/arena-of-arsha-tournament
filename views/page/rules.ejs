@@ -9,46 +9,53 @@
 <!-- Rules Section -->
 <section class="rules-section py-5">
     <div class="container">
-        <!-- Team Rules -->
+        <!-- Match Format -->
         <div class="rule-card">
             <div class="rule-number">01</div>
-            <h3 class="rule-title">เงื่อนไขการสมัครทีม</h3>
-            <div class="rule-content">
-                <ul>
-                    <li>ทีมต้องมีผู้เล่น <strong>2 คน</strong> (ผู้เข้าร่วมต้องหาคู่ของตนเองมา)</li>
-                    <li>ผู้เล่นแต่ละคนต้องมีบัญชี Black Desert Online ที่ใช้งานได้จริง</li>
-                    <li>แต่ละผู้เล่นสามารถเข้าร่วมได้เพียง 1 ทีมเท่านั้น</li>
-                    <li>ทีมที่สมัครต้องมีชื่อทีมที่ไม่หยาบคายหรือละเมิดลิขสิทธิ์</li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Character Rules -->
-        <div class="rule-card">
-            <div class="rule-number">02</div>
-            <h3 class="rule-title">กติกาอาชีพ (Class)</h3>
-            <div class="rule-content">
-                <ul>
-                    <li><strong>อาชีพของผู้เข้าแข่งขันจะถูกสุ่มโดยระบบของทีมงาน</strong></li>
-                    <li>ผู้เข้าร่วมไม่สามารถเลือกอาชีพที่ต้องการได้</li>
-                    <li>อาชีพจะถูกสุ่มและประกาศก่อนการแข่งขันเริ่มต้น</li>
-                    <li>ผู้เล่นต้องเตรียมตัวละครตามอาชีพที่ได้รับมอบหมาย</li>
-                    <li>หากพบว่ามีการใช้อาชีพที่ไม่ตรงตามที่สุ่มได้ ทีมนั้นจะถูกปรับแพ้ทันที</li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Match Rules -->
-        <div class="rule-card">
-            <div class="rule-number">03</div>
             <h3 class="rule-title">รูปแบบการแข่งขัน</h3>
             <div class="rule-content">
                 <ul>
-                    <li>แข่งขันแบบ <strong>2v2 Team Battle</strong> ใน Arena of Arsha</li>
-                    <li>ระบบการจับคู่แบบสุ่ม (Random Bracket)</li>
-                    <li>แต่ละรอบแข่งขันแบบ Best of 3 (ชนะ 2 ใน 3 เกม)</li>
-                    <li>รอบรองชนะเลิศและชิงชนะเลิศ แข่งขันแบบ Best of 5</li>
-                    <li>หากเกิดปัญหาด้านเทคนิค ให้แจ้งกรรมการทันที</li>
+                    <li>การแข่งขันแบบ <strong>2:2</strong> ด้วยอาชีพสุ่มโดยระบบของทีมงาน (โดยไม่มีอาชีพซ้ำกันในทีม)</li>
+                    <li>ใช้ตัวละคร <strong>"ทดลอง"</strong> ในการแข่งขันเท่านั้น และใช้อุปกรณ์ <strong>"กล่องอาร์ชา III"</strong></li>
+                    <li>สถานที่แข่งขัน <strong>ประตูแห่งอาร์ชา</strong></li>
+                    <li>เวลาการแข่งขัน <strong>3 นาที / Round</strong></li>
+                    <li>มีม่านประตูอาร์ชาจะลดขนาดลงตามเวลาสนาม</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Win Conditions -->
+        <div class="rule-card">
+            <div class="rule-number">02</div>
+            <h3 class="rule-title">เงื่อนไขการชนะ</h3>
+            <div class="rule-content">
+                <ul>
+                    <li><strong>รอบคัดเลือก:</strong> ทีมที่ชนะ 2 ใน 3 Round จะผ่านเข้ารอบต่อไป</li>
+                    <li><strong>รอบ 4 ทีมสุดท้าย:</strong> แข่งในรูปแบบสะสมคะแนน แบบพบกันหมด (ทีม1 v 2 / 3 v 4 / 1 v 3 / 2 v 4 / 1 v 4 / 2 v 3)
+                        <ul>
+                            <li>แข่งทั้งหมดคู่ละ 5 Round</li>
+                            <li>ชนะได้ 2 คะแนน / เสมอได้ 1 คะแนน / แพ้ได้ 0 คะแนน (คะแนนสูงสุดที่สามารถทำได้คู่ละ 10 คะแนน)</li>
+                            <li>เสร็จสิ้น 2 ทีมใดที่คะแนนเยอะที่สุดผ่านเข้าสู่รอบชิงชนะเลิศ</li>
+                        </ul>
+                    </li>
+                    <li><strong>รอบชิงชนะเลิศอันดับที่ 3:</strong> แข่งขันแบบชนะ 3 ใน 5 Round</li>
+                    <li><strong>รอบชิงชนะเลิศอันดับที่ 1:</strong> แข่งขันแบบชนะ 5 ใน 9 Round</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Class Randomization System -->
+        <div class="rule-card">
+            <div class="rule-number">03</div>
+            <h3 class="rule-title">ระบบการสุ่มอาชีพของผู้เข้าแข่งขัน</h3>
+            <div class="rule-content">
+                <ul>
+                    <li>ทีมงานจะทำการสุ่มวงล้ออาชีพให้กับทีมแต่ละทีม ทีมละ <strong>3 อาชีพ</strong> (ไม่ซ้ำกัน)</li>
+                    <li>เพื่อป้องกันความโชคดีที่มากเกินไปของผู้เข้าแข่งขัน ทีมงานจะนำ 3 อาชีพที่สุ่มได้ มาให้ผู้ชมใน Live Stream ช่วยกันโหวดแบน 1 อาชีพ (ด้วยระบบของ TwitchTV)</li>
+                    <li>และเมื่อเหลือ 2 อาชีพจากที่ดำเนินการมา ในแต่ละทีมสามารถจัดสรรเลือกอาชีพของแต่ละคนในทีมได้ด้วยตนเอง (รวมถึงเลือก Awakening / Succession ด้วย)</li>
+                    <li>เมื่อการสุ่มอาชีพเสร็จสิ้น จะไม่มีการเปลี่ยนอาชีพในการแข่งขันอีกต่อไป</li>
+                    <li>ผู้เข้าแข่งขันทุกทีม จะมีเวลาฝึกอาชีพที่ทำการสุ่มมา ราวประมาณ <strong>2 สัปดาห์</strong> ก่อนถึงวันที่ทำการแข่งขันจริง</li>
+                    <li>ในวงล้อสุ่มอาชีพ จะไม่มีอาชีพ <strong>"Shai"</strong> และ <strong>"Wukong"</strong></li>
                 </ul>
             </div>
         </div>
@@ -56,48 +63,50 @@
         <!-- Schedule -->
         <div class="rule-card">
             <div class="rule-number">04</div>
-            <h3 class="rule-title">กำหนดการแข่งขัน</h3>
+            <h3 class="rule-title">กำหนดการแข่งขันทั้งหมด</h3>
             <div class="rule-content">
                 <ul>
-                    <li><strong>วันที่ 00/00/0000</strong> - เปิดรับสมัคร</li>
-                    <li><strong>วันที่ 00/00/0000</strong> - ปิดรับสมัคร</li>
-                    <li><strong>วันที่ 00/00/0000</strong> - ประกาศอาชีพที่สุ่มได้</li>
-                    <li><strong>วันที่ 00/00/0000 เวลา 00.00น.</strong> - เริ่มการแข่งขัน</li>
-                    <li>ผู้เข้าแข่งต้องเข้าร่วม 30 นาทีก่อนเวลาแข่งขัน</li>
+                    <li><strong>ลงทะเบียนเข้าร่วมแข่งขัน:</strong> วันที่ 19 เมษายน 2569 เวลา 16.00น. - 25 เมษายน 2569 เวลา 23.59น. (จำกัดการรับสมัคร 32 ทีมแรก)</li>
+                    <li><strong>Live stream ทำการสุ่มอาชีพให้ผู้แข่งขันทั้งหมด:</strong> วันที่ 26 เมษายน 2569 เวลา 21.00น.</li>
+                    <li><strong>Live stream ทำการสุ่มจับคู่ตารางการแข่งขันทั้งหมด:</strong> วันที่ 3 พฤษภาคม 2569 เวลา 21.00น.</li>
+                    <li><strong>เริ่มการแข่งขันรอบคัดเลือก คัดเหลือ 4 ทีมสุดท้าย:</strong> วันที่ 10 พฤษภาคม 2569 เวลา 13.00น.</li>
+                    <li><strong>เริ่มการแข่งขันรอบ 4 ทีมสุดท้าย-รอบชิงชนะเลิศ:</strong> วันที่ 17 พฤษภาคม 2569 เวลา 13.00น.</li>
                 </ul>
+                <p class="mt-3" style="color: var(--primary-gold);"><i class="bi bi-twitch me-2"></i>Live Stream ช่อง twitch.tv/nhon_thestar</p>
             </div>
         </div>
 
-        <!-- Conduct Rules -->
+        <!-- Rules & Penalties -->
         <div class="rule-card">
             <div class="rule-number">05</div>
-            <h3 class="rule-title">จริยธรรมการแข่งขัน</h3>
+            <h3 class="rule-title">กติกา คำแนะนำในการแข่งขันและบทลงโทษ</h3>
             <div class="rule-content">
                 <ul>
-                    <li>ห้ามใช้โปรแกรมโกง (Cheating) หรือบัคในเกม</li>
-                    <li>ห้ามมีพฤติกรรมกลั่นแกล้ง (Toxic) หรือหยาบคาย</li>
-                    <li>ต้องเชื่อฟังคำตัดสินของกรรมการ</li>
-                    <li>หากพบการกระทำผิดกติกา ทีมงานมีสิทธิ์ตัดสิทธิ์ทีมนั้นทันที</li>
-                    <li>การตัดสินของกรรมการถือเป็นที่สิ้นสุด</li>
+                    <li>จำเป็นต้องมี ID Black Desert</li>
+                    <li>ผู้เข้าแข่งขันจัดหาทีมของตนเอง <strong>2 คน / ทีม</strong></li>
+                    <li>ผู้เข้าแข่งขันทั้ง 2 คน ชื่อตระกูลที่ลงทะเบียนต้องตรงกับตัวละครที่จะนำมาแข่งขัน และ ID Discord ต้องเป็นของตนเองและใช้งานได้จริง</li>
+                    <li>ผู้เข้าแข่งขันทั้ง 2 คน จำเป็นต้องกด Join Server Discord ที่ทีมงานระบุไว้ <strong>(Discord AOA The all random Tournament)</strong> เพื่อให้ทีมงานใส่ยศ เพื่อติดตามข่าวสารและดำเนินการแข่งขัน</li>
+                    <li>ผู้เข้าแข่งขันทั้ง 2 คน ณ เวลาที่ทำการแข่งขันจำเป็นต้องเข้า Discord ของทีมงาน และผู้เข้าแข่งขันจำเป็นต้องพูดคุยกันระหว่างการแข่งขันผ่าน Discord ของทีมงานเท่านั้น (ห้องแยกมีทีมงานเฝ้า) เพื่อป้องกันการเกิดปัญหาต่างๆ</li>
+                    <li><strong class="text-danger">ห้ามมิให้ผู้อื่นสวมรอย ID เข้ามาแข่งขัน</strong> หากตรวจสอบพบตัดสิทธิทีมนั้นทันที</li>
+                    <li>ก่อนถึงคิวการแข่งขันในคู่นั้นๆ ทีมงานจะทำการกระซิบตามผู้เข้าแข่งขันในเกม และถ้าผู้เข้าแข่งขันทีมไหนไม่มาหลังจากถึงคิวแล้วเกิน <strong>5 นาที</strong> จะปรับแพ้ทันที</li>
+                    <li>ด้วยการดำเนินการแข่งขันแต่ละคู่อาจจะใช้เวลาไม่แน่นอน แนะนำให้ผู้เข้าแข่งขันติดตามการแข่งขันอย่างใกล้ชิด เพื่อไม่ให้พลาดการแข่งขันในคู่ของตนเอง</li>
+                    <li>ในระหว่างการแข่งขัน หากเกิดปัญหาใดใดที่ไม่สามารถทำการแข่งต่อได้ สามารถบอกทีมงานในห้อง Discord ให้หยุดรอได้ <em>*เฉพาะตอนที่ประตูในสนามยังไม่เปิดขึ้นเท่านั้น</em></li>
+                    <li>หากเกิดปัญหาระหว่างการแข่งขันหลังจากที่ประตูในสนามเปิดไปแล้ว จะต้องดำเนินการแข่งขันต่อไปจนจบ Round</li>
+                    <li><strong class="text-danger">ห้ามผู้เข้าแข่งขันมีพฤติกรรมกลั่นแกล้ง ดูถูก เหยียดหยาม ด่าทอ (Toxic)</strong> ทีมงานพบเจอจะตัดสิทธิทีมนั้นทันที</li>
+                    <li><strong class="text-danger">ห้ามผู้เข้าแข่งขันใช้วิธีการโกง บัค หรือกรยุทธ์วิธีเพื่อเอาเปรียบฝ่ายตรงข้าม</strong> ถ้าทีมงานพิจารณาแล้วเข้าข่ายจะตัดสิทธิทีมนั้นทันที</li>
+                    <li>หากทีมไหนไม่มาร่วมการแข่งขัน ทีมงานจะขอตัดสิทธิการมอบรางวัล</li>
+                    <li>การตัดสินของทีมงานถือเป็นที่สิ้นสุด</li>
                 </ul>
             </div>
-        </div>
-
-        <!-- Important Notice -->
-        <div class="rule-card text-center" style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 183, 0, 0.05) 100%); border: 2px solid var(--primary-gold);">
-            <i class="bi bi-exclamation-triangle-fill fs-1 text-warning mb-3"></i>
-            <h3 style="color: var(--primary-gold);">หมายเหตุสำคัญ</h3>
-            <p style="color: #bbb;">ทีมงานขอสงวนสิทธิ์ในการเปลี่ยนแปลงกติกา วันเวลา หรือรายละเอียดอื่นๆ โดยไม่ต้องแจ้งให้ทราบล่วงหน้า<br>
-                หากมีข้อสงสัยเพิ่มเติม สามารถติดต่อทีมงานผ่านช่องทางที่ระบุในหน้าถ่ายทอดสด</p>
         </div>
 
         <!-- Prize Section -->
         <h2 class="text-center mb-4" style="color: var(--primary-gold); font-weight: 700;">
-            <i class="bi bi-trophy me-2"></i>เงินรางวัล
+            <i class="bi bi-trophy me-2"></i>รางวัลการแข่งขัน
         </h2>
         <div class="prize-table mb-5">
             <div class="prize-header">
-                <i class="bi bi-award-fill me-2"></i>รางวัลรวม 40,000 บาท
+                <i class="bi bi-award-fill me-2"></i>รางวัล Razer Gold รวมมูลค่ากว่า 70,000 บาท
             </div>
             <div class="prize-item">
                 <div class="prize-rank rank-1">1</div>
@@ -106,22 +115,48 @@
             </div>
             <div class="prize-item">
                 <div class="prize-rank rank-2">2</div>
-                <div class="prize-amount">12,000 บาท</div>
+                <div class="prize-amount">10,000 บาท</div>
                 <div class="prize-desc">รองชนะเลิศอันดับ 1</div>
             </div>
             <div class="prize-item">
                 <div class="prize-rank rank-3">3</div>
-                <div class="prize-amount">8,000 บาท</div>
+                <div class="prize-amount">7,000 บาท</div>
                 <div class="prize-desc">รองชนะเลิศอันดับ 2</div>
             </div>
+            <div class="prize-item">
+                <div class="prize-rank" style="background: #cd7f32;">4</div>
+                <div class="prize-amount">5,000 บาท</div>
+                <div class="prize-desc">อันดับที่ 4</div>
+            </div>
+            <div class="prize-item">
+                <div class="prize-rank" style="background: #6c757d;">5-8</div>
+                <div class="prize-amount">1,500 บาท</div>
+                <div class="prize-desc">อันดับที่ 5-8</div>
+            </div>
+            <div class="prize-item">
+                <div class="prize-rank" style="background: #495057;">9-32</div>
+                <div class="prize-amount">500 บาท</div>
+                <div class="prize-desc">อันดับที่ 9-32</div>
+            </div>
+        </div>
+
+        <!-- Important Notice -->
+        <div class="rule-card text-center" style="background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 183, 0, 0.05) 100%); border: 2px solid var(--primary-gold);">
+            <i class="bi bi-exclamation-triangle-fill fs-1 text-warning mb-3"></i>
+            <h3 style="color: var(--primary-gold);">หมายเหตุสำคัญ</h3>
+            <p style="color: #bbb;">
+                หากทีมไหนไม่มาร่วมการแข่งขัน ทีมงานจะขอตัดสิทธิการมอบรางวัล<br>
+                ทีมงานจะทำการเติมเงิน Razer Gold ให้กับ ID ผู้เข้าแข่งขัน หลังจากการแข่งขันจบลง<br>
+                การตัดสินของทีมงานถือเป็นที่สิ้นสุด
+            </p>
         </div>
 
         <!-- CTA Section -->
         <div class="text-center py-5">
             <h2 class="mb-4" style="color: var(--primary-gold);">พร้อมที่จะแข่งขันแล้วหรือยัง?</h2>
-            <p class="mb-4" style="color: #aaa;">สมัครเข้าร่วมการแข่งขันและคว้าเงินรางวัลกว่า 40,000 บาท!</p>
+            <p class="mb-4" style="color: #aaa;">สมัครเข้าร่วมการแข่งขันและคว้าเงินรางวัลกว่า 70,000 บาท!</p>
             <a href="/register" class="btn btn-custom btn-lg">
-                <i class="bi bi-lightning-charge-fill me-2"></i>สมัครเข้าแข่งขันทันที
+                <i class="bi bi-lightning-charge-fill me-2"></i>สมัครเข้าแข่งทันที
             </a>
         </div>
     </div>
