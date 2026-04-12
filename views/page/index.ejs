@@ -19,9 +19,9 @@
         </div>
 
         <div class="mt-5">
-            <a href="/live" class="live-badge text-decoration-none">
-                <span class="live-dot"></span>
-                รับชมการถ่ายทอดสด
+            <a href="/live" class="live-badge-large text-decoration-none">
+                <span class=" bi bi-twitch me-3" style="font-size: larger;"></span>
+                Live Stream Nhon_TheStar
             </a>
         </div>
     </div>
@@ -76,14 +76,15 @@
                 <div class="info-card">
                     <div class="info-icon"><i class="bi bi-calendar-event"></i></div>
                     <h3>วันแข่งขัน</h3>
-                    <p id="tournamentDateDisplay">ติดตามวันแข่งขันได้ในหน้ารายละเอียด</p>
+                    <p id="tournamentDateDisplay">10 พฤษภาคม 2569</p>
+                    <p id="tournamentDateDisplay">17 พฤษภาคม 2569</p>
                 </div>
             </div>
             <div class="col-md-3 col-sm-6">
                 <div class="info-card">
                     <div class="info-icon"><i class="bi bi-twitch"></i></div>
                     <h3>ถ่ายทอดสด</h3>
-                    <p>รับชมการแข่งขันสดผ่านช่องทางที่กำหนด</p>
+                    <p style="font-size: 1.2rem; font-weight: 600; margin: 0;"><a href="https://twitch.tv/nhon_thestar" target="_blank" style="color: var(--primary-gold); text-decoration: none;">Nhon_TheStar</a></p>
                 </div>
             </div>
         </div>
@@ -122,13 +123,13 @@
                     `${tournament.name} | ${tournament.date} | ${tournament.location}`;
             }
 
-            const tournamentDateDisplay = document.getElementById('tournamentDateDisplay');
-            if (tournamentDateDisplay) {
-                tournamentDateDisplay.textContent =
-                    new Date(tournament.date).toLocaleDateString('th-TH', {
-                        year: 'numeric', month: 'long', day: 'numeric'
-                    });
-            }
+            // const tournamentDateDisplay = document.getElementById('tournamentDateDisplay');
+            // if (tournamentDateDisplay) {
+            //     tournamentDateDisplay.textContent =
+            //         new Date(tournament.date).toLocaleDateString('th-TH', {
+            //             year: 'numeric', month: 'long', day: 'numeric'
+            //         });
+            // }
 
             // Update info cards
             // document.getElementById('infoContainer').innerHTML = `
