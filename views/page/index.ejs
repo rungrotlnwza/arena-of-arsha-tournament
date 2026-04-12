@@ -6,7 +6,7 @@
         </div>
         <h1 class="tournament-title">Arena of Arsha</h1>
         <p class="subtitle">ชิงเงินรางวัลรวมมูลค่ากว่า</p>
-        <div class="prize-text">40,000 บาท</div>
+        <div class="prize-text">60,000 บาท</div>
         <p class="subtitle" id="tournamentInfo">รูปแบบ 2v2 Team Battle | สุ่มอาชีพ | ระบบจับคู่แบบสุ่ม</p>
 
         <div class="mt-5">
@@ -36,7 +36,7 @@
         <h2 class="text-center mb-5" style="color: var(--primary-gold); font-weight: 700;">
             <i class="bi bi-trophy-fill me-2"></i>Arena of Arsha Tournament 2026
         </h2>
-        
+
         <div class="row g-4 justify-content-center" id="infoContainer">
             <div class="col-md-4 text-center">
                 <div class="spinner-border text-warning" role="status">
@@ -44,7 +44,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="text-center mt-5">
             <div class="d-inline-block p-4 rounded" style="background: rgba(255,215,0,0.1); border: 1px solid var(--primary-gold);">
                 <h5 style="color: var(--primary-gold);" class="mb-3">
@@ -95,10 +95,11 @@
 <!-- Sponsor Section -->
 <section class="py-5 text-center" style="background: rgba(0, 0, 0, 0.3);">
     <div class="container">
-        <p class="text-uppercase text-muted mb-4" style="letter-spacing: 3px; font-size: 0.9rem;">Sponsored By</p>
+        <p class="text-uppercase text-light mb-4" style="letter-spacing: 3px; font-size: 0.9rem;">Sponsored By</p>
         <div class="d-flex justify-content-center flex-wrap gap-4">
             <span style="color: var(--primary-gold); font-weight: 600; font-size: 1.1rem;">WINJATHUSKY</span>
             <span style="color: var(--primary-gold); font-weight: 600; font-size: 1.1rem;">GOTJI SHOP</span>
+            <span style="color: var(--primary-gold); font-weight: 600; font-size: 1.1rem;">ฉาวโฉ่</span>
             <span style="color: var(--primary-gold); font-weight: 600; font-size: 1.1rem;">MAY MAYLODY</span>
             <span style="color: var(--primary-gold); font-weight: 600; font-size: 1.1rem;">SAOWALUCK</span>
         </div>
@@ -111,47 +112,47 @@
         .then(res => res.json())
         .then(result => {
             if (!result.success) return;
-            
+
             const data = result.data;
             const tournament = data.tournament;
             const reg = data.registration;
-            
+
             // Update tournament info
-            document.getElementById('tournamentInfo').textContent = 
+            document.getElementById('tournamentInfo').textContent =
                 `${tournament.name} | ${tournament.date} | ${tournament.location}`;
-            document.getElementById('tournamentDateDisplay').textContent = 
-                new Date(tournament.date).toLocaleDateString('th-TH', { 
-                    year: 'numeric', month: 'long', day: 'numeric' 
+            document.getElementById('tournamentDateDisplay').textContent =
+                new Date(tournament.date).toLocaleDateString('th-TH', {
+                    year: 'numeric', month: 'long', day: 'numeric'
                 });
-            
+
             // Update info cards
             document.getElementById('infoContainer').innerHTML = `
                 <div class="col-md-3 col-6 text-center">
                     <div class="p-3 rounded" style="background: rgba(255,215,0,0.1); border: 1px solid var(--primary-gold);">
                         <div class="fs-2 fw-bold" style="color: var(--primary-gold);">${reg.approved_teams}</div>
-                        <small class="text-muted">ทีมที่สมัคร</small>
+                        <small class="text-light">ทีมที่สมัคร</small>
                     </div>
                 </div>
                 <div class="col-md-3 col-6 text-center">
                     <div class="p-3 rounded" style="background: rgba(255,215,0,0.1); border: 1px solid var(--primary-gold);">
                         <div class="fs-2 fw-bold" style="color: var(--primary-gold);">${reg.max_teams}</div>
-                        <small class="text-muted">ทีมสูงสุด</small>
+                        <small class="text-light">ทีมสูงสุด</small>
                     </div>
                 </div>
                 <div class="col-md-3 col-6 text-center">
                     <div class="p-3 rounded" style="background: rgba(255,215,0,0.1); border: 1px solid var(--primary-gold);">
                         <div class="fs-2 fw-bold" style="color: var(--primary-gold);">${reg.remaining}</div>
-                        <small class="text-muted">ที่นั่งเหลือ</small>
+                        <small class="text-light">ที่นั่งเหลือ</small>
                     </div>
                 </div>
                 <div class="col-md-3 col-6 text-center">
                     <div class="p-3 rounded" style="background: rgba(255,215,0,0.1); border: 1px solid var(--primary-gold);">
                         <div class="fs-2 fw-bold" style="color: var(--primary-gold);">${parseInt(tournament.prize_first).toLocaleString()}</div>
-                        <small class="text-muted">รางวัลที่ 1 (บาท)</small>
+                        <small class="text-light">รางวัลที่ 1 (บาท)</small>
                     </div>
                 </div>
             `;
-            
+
             // Update registration status
             const regStatus = document.getElementById('registrationStatus');
             if (reg.open) {
@@ -211,8 +212,13 @@
     }
 
     @keyframes glow {
-        from { filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3)); }
-        to { filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.6)); }
+        from {
+            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3));
+        }
+
+        to {
+            filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.6));
+        }
     }
 
     .subtitle {
@@ -226,8 +232,16 @@
     }
 
     @media (max-width: 768px) {
-        .tournament-title { font-size: 2rem; }
-        .prize-text { font-size: 3rem; }
-        .subtitle { font-size: 1.1rem; }
+        .tournament-title {
+            font-size: 2rem;
+        }
+
+        .prize-text {
+            font-size: 3rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+        }
     }
 </style>
