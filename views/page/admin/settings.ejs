@@ -111,6 +111,27 @@
             document.getElementById('registration_start').value = formatDateTimeLocal(currentConfig.registration_start);
             document.getElementById('registration_end').value = formatDateTimeLocal(currentConfig.registration_end);
             
+            // คำนวณสถานะรับสมัครตามเวลา
+            const now = new Date();
+            const regStart = currentConfig.registration_start ? new Date(currentConfig.registration_start) : null;
+            const regEnd = currentConfig.registration_end ? new Date(currentConfig.registration_end) : null;
+            let statusText = 'ปิด';
+            let statusColor = '#888';
+            
+            if (regStart && now < regStart) {
+                const diff = regStart - now;
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                statusText = `เร็วๆ นี้ (อีก ${days} วัน ${hours} ชม.)`;
+                statusColor = 'var(--primary-gold)';
+            } else if (regEnd && now > regEnd) {
+                statusText = 'หมดเวลาแล้ว';
+                statusColor = '#dc3545';
+            } else if (regStart && regEnd && now >= regStart && now <= regEnd) {
+                statusText = 'เปิดรับสมัคร';
+                statusColor = '#28a745';
+            }
+            
             // Show current info
             document.getElementById('currentSettings').innerHTML = `
                 <p><strong>ชื่อ:</strong> ${currentConfig.tournament_name}</p>
@@ -118,7 +139,10 @@
                 <p><strong>เวลา:</strong> ${currentConfig.tournament_time}</p>
                 <p><strong>สถานที่:</strong> ${currentConfig.location}</p>
                 <p><strong>จำนวนทีม:</strong> ${currentConfig.max_teams}</p>
-                <p><strong>รับสมัคร:</strong> ${currentConfig.registration_open === 'true' ? 'เปิด' : 'ปิด'}</p>
+                <p><strong>สถานะ:</strong> <span style="color: ${statusColor};">${statusText}</span></p>
+                <hr style="border-color: var(--border-color);">
+                <p class="mb-1"><small><strong>เปิดรับสมัคร:</strong><br>${regStart ? regStart.toLocaleString('th-TH') : '-'}</small></p>
+                <p class="mb-0"><small><strong>ปิดรับสมัคร:</strong><br>${regEnd ? regEnd.toLocaleString('th-TH') : '-'}</small></p>
             `;
         });
     
