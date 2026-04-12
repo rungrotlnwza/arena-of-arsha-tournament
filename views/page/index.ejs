@@ -219,13 +219,8 @@
             // เปิดรับสมัคร
             regStatus.innerHTML = `
                 <div class="mb-2"><span class="badge bg-success fs-6">เปิดรับสมัคร</span></div>
-                <div class="progress mb-2" style="height: 20px; width: 300px; margin: 0 auto;">
-                    <div class="progress-bar bg-warning" style="width: ${(reg.approved_teams / reg.max_teams) * 100}%; color: #000;">
-                        ${reg.approved_teams}/${reg.max_teams}
-                    </div>
-                </div>
-                <small class="text-light">เหลือ ${reg.remaining} ทีม</small>
-                ${regEnd ? `<small class="d-block text-muted mt-1">ปิดรับสมัคร ${regEnd.toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</small>` : ''}
+             
+                ${regEnd ? `<small class="d-block text-light mt-1">ปิดรับสมัคร ${regEnd.toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</small>` : ''}
             `;
         } else if (reg.status === 'full') {
             // ทีมเต็ม
