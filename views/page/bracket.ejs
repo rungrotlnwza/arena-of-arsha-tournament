@@ -6,100 +6,130 @@
     </div>
 </header>
 
-<!-- Bracket Container -->
-<div class="container py-4">
-    <!-- Round 1: Knockout Stage -->
-    <section class="mb-5" id="knockoutStage">
-        <h4 class="text-center mb-4" style="color: var(--primary-gold);">
-            <i class="bi bi-trophy me-2"></i>รอบคัดเลือก (Best of 3)
-        </h4>
-        <div id="knockoutBracket" class="bracket-scroll">
+<!-- Stage Tabs -->
+<div class="container mb-3">
+    <div class="d-flex justify-content-center gap-2 flex-wrap">
+        <button class="btn btn-custom" id="tabKnockout" onclick="showStage('knockout')">
+            <i class="bi bi-trophy me-2"></i>รอบคัดเลือก
+        </button>
+        <button class="btn btn-outline-custom" id="tabRoundRobin" onclick="showStage('roundrobin')">
+            <i class="bi bi-table me-2"></i>รอบ 4 ทีม (พบกันหมด)
+        </button>
+        <button class="btn btn-outline-custom" id="tabFinals" onclick="showStage('finals')">
+            <i class="bi bi-award me-2"></i>รอบชิงชนะเลิศ
+        </button>
+    </div>
+</div>
+
+<!-- Knockout Stage -->
+<div id="stageKnockout" class="stage-content">
+    <div class="bracket-wrapper">
+        <div id="knockoutContainer" class="bracket-state">
             <div class="text-center py-5">
                 <div class="spinner-border text-warning" role="status"></div>
             </div>
         </div>
-    </section>
+    </div>
+</div>
 
-    <!-- Round 2: 4 Teams Round Robin -->
-    <section class="mb-5" id="roundRobinStage" style="display: none;">
-        <h4 class="text-center mb-4" style="color: var(--primary-gold);">
-            <i class="bi bi-table me-2"></i>รอบ 4 ทีมสุดท้าย (Round Robin)
-        </h4>
-        
-        <!-- Standings Table -->
+<!-- Round Robin Stage (4 Teams) -->
+<div id="stageRoundRobin" class="stage-content" style="display: none;">
+    <div class="container py-4">
+        <!-- Standings -->
         <div class="admin-card mb-4">
-            <h5 class="mb-3" style="color: var(--primary-gold);">ตารางคะแนน</h5>
+            <h5 class="mb-3" style="color: var(--primary-gold);">
+                <i class="bi bi-list-ol me-2"></i>ตารางคะแนน
+            </h5>
+            <p class="text-muted mb-3">
+                <i class="bi bi-info-circle me-1"></i>
+                แข่งคู่ละ 5 Round | ชนะ 2 คะแนน | เสมอ 1 คะแนน | แพ้ 0 คะแนน
+            </p>
             <div class="table-responsive">
-                <table class="table table-dark table-sm">
+                <table class="table table-dark table-hover">
                     <thead>
                         <tr>
-                            <th>อันดับ</th>
+                            <th style="width: 80px;">อันดับ</th>
                             <th>ทีม</th>
                             <th>แข่ง</th>
                             <th>ชนะ</th>
                             <th>เสมอ</th>
                             <th>แพ้</th>
-                            <th>คะแนน</th>
+                            <th style="color: var(--primary-gold);">คะแนน</th>
                         </tr>
                     </thead>
-                    <tbody id="standingsTable">
-                        <tr><td colspan="7" class="text-center">กำลังโหลด...</td></tr>
+                    <tbody id="standingsBody">
+                        <tr><td colspan="7" class="text-center py-4">กำลังโหลด...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
         <!-- Round Robin Matches -->
+        <h5 class="mb-3" style="color: var(--primary-gold);">
+            <i class="bi bi-calendar-week me-2"></i>ตารางแข่งขัน
+        </h5>
         <div id="roundRobinMatches" class="row g-3">
-            <!-- Matches will be loaded here -->
+            <!-- Matches loaded dynamically -->
         </div>
-    </section>
+    </div>
+</div>
 
-    <!-- Final Stage -->
-    <section class="mb-5" id="finalStage" style="display: none;">
-        <h4 class="text-center mb-4" style="color: var(--primary-gold);">
-            <i class="bi bi-award me-2"></i>รอบชิงชนะเลิศ
-        </h4>
-        <div class="row g-4">
-            <!-- 3rd Place Match -->
-            <div class="col-md-6">
-                <div class="admin-card h-100">
+<!-- Finals Stage -->
+<div id="stageFinals" class="stage-content" style="display: none;">
+    <div class="container py-5">
+        <div class="row justify-content-center g-4">
+            <!-- 3rd Place -->
+            <div class="col-md-5">
+                <div class="admin-card h-100 text-center">
                     <h5 class="mb-3" style="color: #cd7f32;">
-                        <i class="bi bi-trophy-fill me-2"></i>ชิงอันดับที่ 3 (Best of 5)
+                        <i class="bi bi-trophy me-2"></i>ชิงอันดับที่ 3
                     </h5>
-                    <div id="match3rd">
+                    <div class="mb-3">
+                        <span class="badge bg-secondary">Best of 5</span>
+                    </div>
+                    <div id="final3rdContent">
                         <p class="text-muted">รอการแข่งขัน</p>
                     </div>
                 </div>
             </div>
-            <!-- 1st Place Match -->
-            <div class="col-md-6">
-                <div class="admin-card h-100" style="border: 2px solid var(--primary-gold);">
+            <!-- 1st Place -->
+            <div class="col-md-5">
+                <div class="admin-card h-100 text-center" style="border: 2px solid var(--primary-gold);">
                     <h5 class="mb-3" style="color: var(--primary-gold);">
-                        <i class="bi bi-trophy-fill me-2"></i>ชิงอันดับที่ 1 (Best of 9)
+                        <i class="bi bi-trophy-fill me-2"></i>ชิงอันดับที่ 1
                     </h5>
-                    <div id="match1st">
+                    <div class="mb-3">
+                        <span class="badge bg-warning" style="color: #000;">Best of 9</span>
+                    </div>
+                    <div id="final1stContent">
                         <p class="text-muted">รอการแข่งขัน</p>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
 </div>
 
 <script>
+    // Stage switching
+    function showStage(stage) {
+        document.querySelectorAll('.stage-content').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('[id^="tab"]').forEach(el => {
+            el.classList.remove('btn-custom');
+            el.classList.add('btn-outline-custom');
+        });
+        
+        document.getElementById('stage' + stage.charAt(0).toUpperCase() + stage.slice(1)).style.display = 'block';
+        document.getElementById('tab' + stage.charAt(0).toUpperCase() + stage.slice(1)).classList.remove('btn-outline-custom');
+        document.getElementById('tab' + stage.charAt(0).toUpperCase() + stage.slice(1)).classList.add('btn-custom');
+    }
+
     // Load bracket data
     fetch('/api/bracket', { credentials: 'include' })
         .then(res => res.json())
         .then(result => {
             if (!result.success) {
-                document.getElementById('knockoutBracket').innerHTML = `
-                    <div class="text-center py-5">
-                        <i class="bi bi-calendar-x fs-1 mb-3 d-block" style="color: var(--primary-gold);"></i>
-                        <h4 style="color: #ccc;">ยังไม่มีตารางการแข่งขัน</h4>
-                        <p class="text-muted">รอการประกาศจากทางผู้จัด</p>
-                    </div>
-                `;
+                renderEmptyState();
                 return;
             }
 
@@ -108,79 +138,143 @@
             // Render Knockout Stage
             renderKnockout(data.round_1 || []);
             
-            // Render Round Robin Stage if available
-            if (data.round_robin && data.round_robin.length > 0) {
-                document.getElementById('roundRobinStage').style.display = 'block';
+            // Render Round Robin
+            if (data.round_robin) {
                 renderRoundRobin(data.round_robin, data.standings || []);
             }
             
-            // Render Final Stage if available
+            // Render Finals
             if (data.finals) {
-                document.getElementById('finalStage').style.display = 'block';
-                if (data.finals.third_place) {
-                    renderFinalMatch('match3rd', data.finals.third_place, 'Best of 5');
-                }
-                if (data.finals.first_place) {
-                    renderFinalMatch('match1st', data.finals.first_place, 'Best of 9');
-                }
+                renderFinals(data.finals);
             }
         })
         .catch(() => {
-            document.getElementById('knockoutBracket').innerHTML = `
-                <div class="text-center py-5">
-                    <i class="bi bi-exclamation-circle fs-1 mb-3 d-block text-danger"></i>
-                    <h4 style="color: #ccc;">เกิดข้อผิดพลาด</h4>
-                    <p class="text-muted">ไม่สามารถโหลดตารางได้</p>
-                </div>
-            `;
+            renderEmptyState();
         });
 
+    function renderEmptyState() {
+        document.getElementById('knockoutContainer').innerHTML = `
+            <div class="state-card">
+                <i class="bi bi-calendar-x state-icon"></i>
+                <h4>ยังไม่มีตารางการแข่งขัน</h4>
+                <p>รอการประกาศคู่แข่งขันจากทางผู้จัด</p>
+            </div>
+        `;
+    }
+
+    // Knockout Bracket Rendering (SVG with connectors)
     function renderKnockout(matches) {
-        const container = document.getElementById('knockoutBracket');
+        const container = document.getElementById('knockoutContainer');
         
         if (matches.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-5">
-                    <i class="bi bi-calendar-x fs-1 mb-3 d-block" style="color: var(--primary-gold);"></i>
-                    <h4 style="color: #ccc;">ยังไม่มีตารางรอบคัดเลือก</h4>
-                </div>
-            `;
+            renderEmptyState();
             return;
         }
 
-        // Group matches by round
+        // Group by rounds
         const rounds = {};
-        matches.forEach(match => {
-            const round = match.round || 'round_1';
-            if (!rounds[round]) rounds[round] = [];
-            rounds[round].push(match);
+        matches.forEach(m => {
+            const r = m.round || 'round_1';
+            if (!rounds[r]) rounds[r] = [];
+            rounds[r].push(m);
         });
 
-        // Render rounds
-        let html = '<div class="d-flex gap-4 justify-content-center flex-wrap">';
+        // Sort rounds
+        const roundOrder = ['round_1', 'round_2', 'round_3', 'quarter', 'semi'];
+        const sortedRounds = [];
         
-        Object.keys(rounds).forEach(roundKey => {
-            const roundMatches = rounds[roundKey].sort((a, b) => a.match_number - b.match_number);
-            html += `
-                <div class="round-column">
-                    <h6 class="text-center mb-3" style="color: var(--primary-gold);">${getRoundName(roundKey)}</h6>
-                    <div class="d-flex flex-column gap-3">
-                        ${roundMatches.map(match => createMatchCard(match)).join('')}
+        roundOrder.forEach(key => {
+            if (rounds[key]) {
+                sortedRounds.push({
+                    key: key,
+                    label: getRoundLabel(key),
+                    matches: rounds[key].sort((a, b) => a.match_number - b.match_number)
+                });
+            }
+        });
+
+        // Calculate layout
+        const cardW = 280, cardH = 100, gapX = 60, gapY = 30;
+        const headerH = 50;
+        const maxMatches = Math.max(...sortedRounds.map(r => r.matches.length));
+        const height = headerH + (maxMatches * cardH) + ((maxMatches - 1) * gapY) + 40;
+        const width = sortedRounds.length * (cardW + gapX) + 40;
+
+        // Build SVG
+        let svg = `<svg class="connector-layer" viewBox="0 0 ${width} ${height}" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;">`;
+        let cards = '';
+
+        sortedRounds.forEach((round, rIdx) => {
+            const colX = 20 + rIdx * (cardW + gapX);
+            const matchCount = round.matches.length;
+            const totalHeight = matchCount * cardH + (matchCount - 1) * gapY;
+            const startY = headerH + (height - headerH - totalHeight) / 2;
+
+            // Header
+            cards += `<div class="round-heading" style="position:absolute;left:${colX}px;top:10px;width:${cardW}px;text-align:center;">
+                <span class="round-chip">${round.label}</span>
+            </div>`;
+
+            // Matches
+            round.matches.forEach((match, mIdx) => {
+                const top = startY + mIdx * (cardH + gapY);
+                const centerY = top + cardH / 2;
+
+                // Draw connector to next round
+                if (rIdx < sortedRounds.length - 1) {
+                    const nextColX = 20 + (rIdx + 1) * (cardW + gapX);
+                    const parentIdx = Math.floor(mIdx / 2);
+                    const nextRoundMatches = sortedRounds[rIdx + 1].matches.length;
+                    const nextTotalH = nextRoundMatches * cardH + (nextRoundMatches - 1) * gapY;
+                    const nextStartY = headerH + (height - headerH - nextTotalH) / 2;
+                    const nextTop = nextStartY + parentIdx * (cardH + gapY);
+                    const nextCenterY = nextTop + cardH / 2;
+
+                    svg += `<path d="M ${colX + cardW} ${centerY} L ${colX + cardW + gapX / 2} ${centerY} L ${colX + cardW + gapX / 2} ${nextCenterY} L ${nextColX} ${nextCenterY}" stroke="rgba(255,215,0,0.6)" stroke-width="2" fill="none" />`;
+                }
+
+                // Match card
+                cards += createKnockoutCard(match, colX, top, cardW, cardH);
+            });
+        });
+
+        svg += '</svg>';
+        container.innerHTML = `<div style="position:relative;width:${width}px;height:${height}px;margin:0 auto;">${svg}${cards}</div>`;
+        enableGrabScroll(document.querySelector('.bracket-wrapper'));
+    }
+
+    function createKnockoutCard(match, left, top, width, height) {
+        const isWinner1 = match.winner_id === match.team1_id;
+        const isWinner2 = match.winner_id === match.team2_id;
+        const statusClass = match.status === 'completed' ? 'completed' : match.status === 'ongoing' ? 'ongoing' : 'pending';
+
+        return `
+            <div class="match-card" style="position:absolute;left:${left}px;top:${top}px;width:${width}px;height:${height}px;">
+                <div class="match-header">
+                    <span class="match-number">คู่ที่ ${match.match_number}</span>
+                    <span class="match-status ${statusClass}">${getStatusText(match.status)}</span>
+                </div>
+                <div class="match-body">
+                    <div class="team-row ${isWinner1 ? 'is-winner' : ''} ${!match.team1_id ? 'is-tbd' : ''}">
+                        <span>${match.team1_name || 'TBD'}</span>
+                        ${isWinner1 ? '<i class="bi bi-check-circle-fill"></i>' : ''}
+                    </div>
+                    <div class="team-row ${isWinner2 ? 'is-winner' : ''} ${!match.team2_id ? 'is-tbd' : ''}">
+                        <span>${match.team2_name || 'TBD'}</span>
+                        ${isWinner2 ? '<i class="bi bi-check-circle-fill"></i>' : ''}
                     </div>
                 </div>
-            `;
-        });
-        
-        html += '</div>';
-        container.innerHTML = html;
+            </div>
+        `;
     }
 
     function renderRoundRobin(matches, standings) {
-        // Render standings
-        const sortedStandings = [...standings].sort((a, b) => b.points - a.points);
-        document.getElementById('standingsTable').innerHTML = sortedStandings.map((team, index) => `
+        // Sort standings by points
+        const sorted = [...standings].sort((a, b) => b.points - a.points);
+        
+        document.getElementById('standingsBody').innerHTML = sorted.map((team, idx) => `
             <tr>
-                <td><strong style="color: ${index < 2 ? 'var(--primary-gold)' : '#ccc'};">${index + 1}</strong></td>
+                <td><strong style="color: ${idx < 2 ? 'var(--primary-gold)' : '#ccc'};">${idx + 1}</strong></td>
                 <td>${escapeHtml(team.team_name)}</td>
                 <td>${team.played}</td>
                 <td>${team.wins}</td>
@@ -190,85 +284,218 @@
             </tr>
         `).join('');
 
-        // Render matches
-        document.getElementById('roundRobinMatches').innerHTML = matches.map(match => `
+        document.getElementById('roundRobinMatches').innerHTML = matches.map(m => `
             <div class="col-md-6">
-                ${createMatchCard(match)}
+                <div class="admin-card">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small style="color: #888;">คู่ที่ ${m.match_number}</small>
+                        <span class="badge bg-${m.status === 'completed' ? 'success' : m.status === 'ongoing' ? 'warning' : 'secondary'}">
+                            ${getStatusText(m.status)}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <span class="${m.winner_id === m.team1_id ? 'fw-bold' : ''}" style="color: ${m.winner_id === m.team1_id ? 'var(--primary-gold)' : '#fff'}">
+                            ${escapeHtml(m.team1_name || 'TBD')}
+                        </span>
+                        ${m.team1_score !== undefined ? `<span class="badge bg-dark">${m.team1_score}</span>` : ''}
+                    </div>
+                    <div class="d-flex justify-content-between py-2">
+                        <span class="${m.winner_id === m.team2_id ? 'fw-bold' : ''}" style="color: ${m.winner_id === m.team2_id ? 'var(--primary-gold)' : '#fff'}">
+                            ${escapeHtml(m.team2_name || 'TBD')}
+                        </span>
+                        ${m.team2_score !== undefined ? `<span class="badge bg-dark">${m.team2_score}</span>` : ''}
+                    </div>
+                </div>
             </div>
         `).join('');
     }
 
-    function renderFinalMatch(elementId, match, format) {
-        document.getElementById(elementId).innerHTML = createMatchCard(match, format);
+    function renderFinals(finals) {
+        if (finals.third_place) {
+            const m = finals.third_place;
+            document.getElementById('final3rdContent').innerHTML = `
+                <div class="match-card" style="background: rgba(30,30,30,0.9); border-radius: 10px; padding: 15px;">
+                    <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <span style="color: ${m.winner_id === m.team1_id ? 'var(--primary-gold)' : '#fff'}; font-weight: ${m.winner_id === m.team1_id ? '700' : '400'};">
+                            ${escapeHtml(m.team1_name || 'TBD')}
+                        </span>
+                        ${m.team1_score !== undefined ? `<span class="badge bg-dark">${m.team1_score}</span>` : ''}
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-2">
+                        <span style="color: ${m.winner_id === m.team2_id ? 'var(--primary-gold)' : '#fff'}; font-weight: ${m.winner_id === m.team2_id ? '700' : '400'};">
+                            ${escapeHtml(m.team2_name || 'TBD')}
+                        </span>
+                        ${m.team2_score !== undefined ? `<span class="badge bg-dark">${m.team2_score}</span>` : ''}
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-${m.status === 'completed' ? 'success' : m.status === 'ongoing' ? 'warning' : 'secondary'}">
+                            ${getStatusText(m.status)}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
+
+        if (finals.first_place) {
+            const m = finals.first_place;
+            document.getElementById('final1stContent').innerHTML = `
+                <div class="match-card" style="background: rgba(30,30,30,0.9); border: 1px solid var(--primary-gold); border-radius: 10px; padding: 15px;">
+                    <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <span style="color: ${m.winner_id === m.team1_id ? 'var(--primary-gold)' : '#fff'}; font-weight: ${m.winner_id === m.team1_id ? '700' : '400'};">
+                            ${escapeHtml(m.team1_name || 'TBD')}
+                        </span>
+                        ${m.team1_score !== undefined ? `<span class="badge bg-dark">${m.team1_score}</span>` : ''}
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-2">
+                        <span style="color: ${m.winner_id === m.team2_id ? 'var(--primary-gold)' : '#fff'}; font-weight: ${m.winner_id === m.team2_id ? '700' : '400'};">
+                            ${escapeHtml(m.team2_name || 'TBD')}
+                        </span>
+                        ${m.team2_score !== undefined ? `<span class="badge bg-dark">${m.team2_score}</span>` : ''}
+                    </div>
+                    <div class="mt-2">
+                        <span class="badge bg-${m.status === 'completed' ? 'success' : m.status === 'ongoing' ? 'warning' : 'secondary'}">
+                            ${getStatusText(m.status)}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
     }
 
-    function createMatchCard(match, format = '') {
-        const statusColor = {
-            'pending': 'secondary',
-            'ongoing': 'warning',
-            'completed': 'success'
-        }[match.status] || 'secondary';
-
-        const statusText = {
-            'pending': 'รอแข่ง',
-            'ongoing': 'กำลังแข่ง',
-            'completed': 'จบแล้ว'
-        }[match.status] || 'รอแข่ง';
-
-        return `
-            <div class="match-card" style="background: rgba(30,30,30,0.9); border: 1px solid var(--border-color); border-radius: 10px; padding: 15px;">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <small style="color: #888;">คู่ที่ ${match.match_number}</small>
-                    <span class="badge bg-${statusColor}">${statusText}</span>
-                </div>
-                <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                    <span style="color: ${match.winner_id === match.team1_id ? 'var(--primary-gold)' : '#fff'}; font-weight: ${match.winner_id === match.team1_id ? '700' : '400'};">
-                        ${escapeHtml(match.team1_name || 'TBD')}
-                    </span>
-                    ${match.winner_id === match.team1_id ? '<i class="bi bi-check-circle-fill" style="color: var(--primary-gold);"></i>' : ''}
-                </div>
-                <div class="d-flex justify-content-between align-items-center py-2">
-                    <span style="color: ${match.winner_id === match.team2_id ? 'var(--primary-gold)' : '#fff'}; font-weight: ${match.winner_id === match.team2_id ? '700' : '400'};">
-                        ${escapeHtml(match.team2_name || 'TBD')}
-                    </span>
-                    ${match.winner_id === match.team2_id ? '<i class="bi bi-check-circle-fill" style="color: var(--primary-gold);"></i>' : ''}
-                </div>
-                ${format ? `<small style="color: #888;"><i class="bi bi-info-circle me-1"></i>${format}</small>` : ''}
-                ${match.stream_url ? `<a href="${escapeHtml(match.stream_url)}" target="_blank" class="btn btn-sm btn-outline-custom mt-2 w-100"><i class="bi bi-broadcast me-1"></i>รับชมสด</a>` : ''}
-            </div>
-        `;
-    }
-
-    function getRoundName(roundKey) {
-        const names = {
+    function getRoundLabel(key) {
+        const labels = {
             'round_1': 'รอบ 32 ทีม',
             'round_2': 'รอบ 16 ทีม',
+            'round_3': 'รอบ 8 ทีม',
             'quarter': 'รอบ 8 ทีม',
-            'semi': 'รอบรองชนะเลิศ',
-            'final': 'รอบชิงชนะเลิศ'
+            'semi': 'รอบรองชนะเลิศ'
         };
-        return names[roundKey] || roundKey;
+        return labels[key] || key;
+    }
+
+    function getStatusText(status) {
+        const map = { pending: 'รอแข่ง', ongoing: 'กำลังแข่ง', completed: 'จบแล้ว' };
+        return map[status] || 'รอแข่ง';
     }
 
     function escapeHtml(text) {
         if (!text) return 'TBD';
         return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
+
+    function enableGrabScroll(viewport) {
+        if (!viewport) return;
+        
+        const state = { isDown: false, isDrag: false, startX: 0, startY: 0, scrollL: 0, scrollT: 0 };
+        
+        viewport.addEventListener('mousedown', e => {
+            if (e.button !== 0 || e.target.closest('a, button')) return;
+            state.isDown = true;
+            state.isDrag = false;
+            state.startX = e.clientX;
+            state.startY = e.clientY;
+            state.scrollL = viewport.scrollLeft;
+            state.scrollT = viewport.scrollTop;
+            viewport.classList.add('is-grab-ready');
+        });
+
+        window.addEventListener('mousemove', e => {
+            if (!state.isDown) return;
+            const dx = e.clientX - state.startX;
+            const dy = e.clientY - state.startY;
+            if (!state.isDrag && Math.abs(dx) + Math.abs(dy) < 6) return;
+            state.isDrag = true;
+            viewport.classList.add('is-grabbing');
+            viewport.scrollLeft = state.scrollL - dx;
+            viewport.scrollTop = state.scrollT - dy;
+            e.preventDefault();
+        });
+
+        window.addEventListener('mouseup', () => {
+            state.isDown = false;
+            state.isDrag = false;
+            viewport.classList.remove('is-grab-ready', 'is-grabbing');
+        });
+    }
 </script>
 
 <style>
-    .bracket-scroll {
-        overflow-x: auto;
-        padding: 20px 0;
-    }
-    .round-column {
-        min-width: 280px;
-    }
+    .stage-content { min-height: 400px; }
+    .bracket-wrapper { padding: 20px; overflow: auto; cursor: grab; }
+    .bracket-wrapper.is-grab-ready, .bracket-wrapper.is-grabbing { cursor: grabbing; }
+    
     .match-card {
-        transition: transform 0.2s;
+        background: linear-gradient(180deg, rgba(37,36,46,0.96), rgba(22,22,28,0.96));
+        border: 1px solid rgba(255,215,0,0.18);
+        border-radius: 12px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.28);
+        z-index: 2;
+        overflow: hidden;
     }
-    .match-card:hover {
-        transform: translateY(-2px);
-        border-color: var(--primary-gold) !important;
+    
+    .match-header {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 12px;
+        background: rgba(255,215,0,0.06);
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    
+    .match-number { color: rgba(255,255,255,0.6); font-size: 12px; }
+    
+    .match-status {
+        padding: 3px 8px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 600;
+    }
+    .match-status.pending { background: rgba(108,117,125,0.3); color: #c8cdd2; }
+    .match-status.ongoing { background: rgba(255,193,7,0.3); color: #ffd761; }
+    .match-status.completed { background: rgba(40,167,69,0.3); color: #6be58d; }
+    
+    .match-body { display: flex; flex-direction: column; height: calc(100% - 40px); }
+    
+    .team-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        color: #f8f9fa;
+        font-size: 14px;
+        flex: 1;
+    }
+    .team-row + .team-row { border-top: 1px solid rgba(255,255,255,0.08); }
+    .team-row.is-winner { background: rgba(40,167,69,0.12); color: #8ef0a6; }
+    .team-row.is-tbd { color: rgba(255,255,255,0.4); font-style: italic; }
+    .team-row i { color: var(--primary-gold); font-size: 12px; }
+    
+    .round-chip {
+        display: inline-flex;
+        padding: 6px 14px;
+        border-radius: 20px;
+        background: rgba(255,215,0,0.15);
+        color: var(--primary-gold);
+        font-size: 13px;
+        font-weight: 600;
+    }
+    
+    .state-card {
+        max-width: 500px;
+        margin: 40px auto;
+        padding: 40px 20px;
+        text-align: center;
+        background: rgba(30,30,30,0.9);
+        border: 1px solid var(--border-color);
+        border-radius: 15px;
+    }
+    
+    .state-icon {
+        font-size: 48px;
+        color: var(--primary-gold);
+        margin-bottom: 15px;
+    }
+    
+    .connector-layer path {
+        filter: drop-shadow(0 0 4px rgba(255,215,0,0.3));
     }
 </style>
