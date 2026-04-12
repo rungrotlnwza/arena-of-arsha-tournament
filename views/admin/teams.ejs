@@ -122,25 +122,38 @@
                         <tr><td>ชื่อทีม</td><td>${escapeHtml(team.team_name)}</td></tr>
                         <tr><td>สถานะ</td><td><span class="status-badge status-${team.status}">${getStatusText(team.status)}</span></td></tr>
                         <tr><td>สมัครเมื่อ</td><td>${new Date(team.created_at).toLocaleString('th-TH')}</td></tr>
-                        ${team.referral ? `<tr><td>รู้จักจาก</td><td>${escapeHtml(team.referral)}</td></tr>` : ''}
-                        ${team.experience ? `<tr><td>ประสบการณ์</td><td>${escapeHtml(team.experience)}</td></tr>` : ''}
                     </table>
                 </div>
                 <div class="col-md-6">
-                    <h6 style="color: var(--primary-gold);">ผู้เล่น 1</h6>
+                    <h6 style="color: var(--primary-gold);">การยอมรับเงื่อนไข</h6>
                     <table class="table table-dark table-sm">
-                        <tr><td>Family Name</td><td>${escapeHtml(team.player1_family || '-')}</td></tr>
-                        <tr><td>ชื่อตัวละครในเกม</td><td>${escapeHtml(team.player1_bdo || '-')}</td></tr>
-                        <tr><td>Discord ID</td><td>${escapeHtml(team.player1_discord || '-')}</td></tr>
+                        <tr>
+                            <td><i class="bi bi-discord me-2"></i>เข้าร่วม Discord</td>
+                            <td>${team.agree_discord ? '<span class="text-success"><i class="bi bi-check-circle-fill"></i> ยอมรับ</span>' : '<span class="text-danger"><i class="bi bi-x-circle-fill"></i> ไม่ยอมรับ</span>'}</td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-journal-text me-2"></i>ยอมรับกติกา</td>
+                            <td>${team.agree_rules ? '<span class="text-success"><i class="bi bi-check-circle-fill"></i> ยอมรับ</span>' : '<span class="text-danger"><i class="bi bi-x-circle-fill"></i> ไม่ยอมรับ</span>'}</td>
+                        </tr>
+                        <tr>
+                            <td><i class="bi bi-camera-video me-2"></i>ถ่ายทอดสด</td>
+                            <td>${team.agree_live ? '<span class="text-success"><i class="bi bi-check-circle-fill"></i> ยอมรับ</span>' : '<span class="text-danger"><i class="bi bi-x-circle-fill"></i> ไม่ยอมรับ</span>'}</td>
+                        </tr>
                     </table>
                 </div>
             </div>
             <div class="row mt-3">
                 <div class="col-md-6">
+                    <h6 style="color: var(--primary-gold);">ผู้เล่น 1</h6>
+                    <table class="table table-dark table-sm">
+                        <tr><td>ชื่อตระกูล</td><td>${escapeHtml(team.player1_family || team.player1_name || '-')}</td></tr>
+                        <tr><td>Discord ID</td><td>${escapeHtml(team.player1_discord || '-')}</td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
                     <h6 style="color: var(--primary-gold);">ผู้เล่น 2</h6>
                     <table class="table table-dark table-sm">
-                        <tr><td>Family Name</td><td>${escapeHtml(team.player2_family || '-')}</td></tr>
-                        <tr><td>ชื่อตัวละครในเกม</td><td>${escapeHtml(team.player2_bdo || '-')}</td></tr>
+                        <tr><td>ชื่อตระกูล</td><td>${escapeHtml(team.player2_family || team.player2_name || '-')}</td></tr>
                         <tr><td>Discord ID</td><td>${escapeHtml(team.player2_discord || '-')}</td></tr>
                     </table>
                 </div>

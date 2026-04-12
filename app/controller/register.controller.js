@@ -15,7 +15,7 @@ module.exports = {
     const conn = await mysqli.getConnection();
 
     try {
-      const { team_name, players, agree_live } = req.body;
+      const { team_name, players, agree_discord, agree_rules, agree_live } = req.body;
 
       // Validation
       if (!team_name || !players || !Array.isArray(players) || players.length !== 2) {
@@ -64,9 +64,9 @@ module.exports = {
 
       // สร้างทีม
       const [teamResult] = await conn.query(
-        `INSERT INTO teams (team_name, status, agree_live) 
-         VALUES (?, 'pending', ?)`,
-        [team_name, agree_live ? 1 : 0]
+        `INSERT INTO teams (team_name, status, agree_discord, agree_rules, agree_live) 
+         VALUES (?, 'pending', ?, ?, ?)`,
+        [team_name, agree_discord ? 1 : 0, agree_rules ? 1 : 0, agree_live ? 1 : 0]
       );
 
       const teamId = teamResult.insertId;

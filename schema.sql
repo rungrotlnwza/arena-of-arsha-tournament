@@ -38,6 +38,8 @@ CREATE TABLE IF NOT EXISTS teams (
     id INT AUTO_INCREMENT PRIMARY KEY,
     team_name VARCHAR(100) NOT NULL UNIQUE,
     status ENUM('pending', 'approved', 'rejected', 'withdrawn') DEFAULT 'pending',
+    agree_discord TINYINT(1) DEFAULT 0 COMMENT 'ยอมรับเข้าร่วม Discord',
+    agree_rules TINYINT(1) DEFAULT 0 COMMENT 'ยอมรับกติกาการแข่งขัน',
     agree_live TINYINT(1) DEFAULT 0 COMMENT 'ยินยอมให้ถ่ายทอดสด',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
