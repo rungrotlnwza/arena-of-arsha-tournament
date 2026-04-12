@@ -2,7 +2,7 @@
 <header class="page-header">
     <div class="container">
         <h1 class="page-title"><i class="bi bi-broadcast me-3"></i>ถ่ายทอดสด</h1>
-        <p class="page-subtitle" id="tournamentSubtitle">รับชมการแข่งขัน Arena of Arsha Tournament 2026 สดๆ ที่นี่</p>
+        <p class="page-subtitle">รับชมการแข่งขัน Arena of Arsha The All Random Tournament สดๆ ที่นี่</p>
     </div>
 </header>
 
@@ -13,19 +13,23 @@
             <div class="col-lg-10">
                 <!-- Stream Container -->
                 <div class="stream-container mb-4" style="background: #000; border-radius: 15px; overflow: hidden; border: 2px solid var(--primary-gold);">
-                    <div id="streamPlaceholder" class="text-center py-5">
-                        <div class="spinner-border text-warning" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-3 text-muted">กำลังโหลดข้อมูลการถ่ายทอดสด...</p>
-                    </div>
-                    <div id="streamEmbed" style="display: none;"></div>
-                    <div id="noStream" class="text-center py-5" style="display: none;">
-                        <i class="bi bi-broadcast fs-1 mb-3 d-block" style="color: var(--primary-gold);"></i>
-                        <h4 style="color: #ccc;">ยังไม่มีการถ่ายทอดสด</h4>
-                        <p style="color: #888;">กรุณากลับมาตรวจสอบอีกครั้งในวันแข่งขัน</p>
-                    </div>
+                    <iframe 
+                        id="twitchStream"
+                        src="" 
+                        frameborder="0" 
+                        allowfullscreen="true" 
+                        scrolling="no" 
+                        height="500" 
+                        width="100%">
+                    </iframe>
                 </div>
+
+                <script>
+                    // Set Twitch embed parent dynamically based on current hostname
+                    const hostname = window.location.hostname || 'localhost';
+                    document.getElementById('twitchStream').src = 
+                        'https://player.twitch.tv/?channel=nhon_thestar&parent=' + hostname;
+                </script>
 
                 <!-- Info Cards -->
                 <div class="row g-4">
@@ -33,14 +37,14 @@
                         <div class="text-center p-4 rounded" style="background: rgba(30,30,30,0.9); border: 1px solid var(--border-color);">
                             <i class="bi bi-calendar-event fs-2 mb-2 d-block" style="color: var(--primary-gold);"></i>
                             <h5 style="color: #fff;">วันแข่งขัน</h5>
-                            <p class="mb-0 text-light" id="tournamentDate">-</p>
+                            <p class="mb-0 text-light">10 และ 17 พฤษภาคม 2569</p>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="text-center p-4 rounded" style="background: rgba(30,30,30,0.9); border: 1px solid var(--border-color);">
                             <i class="bi bi-clock fs-2 mb-2 d-block" style="color: var(--primary-gold);"></i>
                             <h5 style="color: #fff;">เวลา</h5>
-                            <p class="mb-0 text-light" id="tournamentTime">-</p>
+                            <p class="mb-0 text-light">13:00 น.</p>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -71,85 +75,6 @@
         </div>
     </div>
 </section>
-
-<script>
-    fetch('/api/live', { credentials: 'include', method: 'GET' })
-        .then(res => res.json())
-        .then(result => {
-            document.getElementById('streamPlaceholder').style.display = 'none';
-
-            if (!result.success) {
-                document.getElementById('noStream').style.display = 'block';
-                return;
-            }
-
-            const data = result.data;
-
-            // Update info
-            document.getElementById('tournamentSubtitle').textContent =
-                `รับชมการแข่งขัน ${data.tournament_name} สดๆ ที่นี่`;
-            document.getElementById('tournamentDate').textContent =
-                new Date(data.tournament_date).toLocaleDateString('th-TH', {
-                    year: 'numeric', month: 'long', day: 'numeric'
-                });
-
-            // Check stream URL
-            if (!data.stream_url) {
-                document.getElementById('noStream').style.display = 'block';
-                return;
-            }
-
-            // Embed stream
-            const embedContainer = document.getElementById('streamEmbed');
-            embedContainer.style.display = 'block';
-
-            // Detect platform and embed accordingly
-            if (data.stream_url.includes('twitch.tv')) {
-                const channel = data.stream_url.split('twitch.tv/').pop().split('/')[0];
-                embedContainer.innerHTML = `
-                    <iframe 
-                        src="https://player.twitch.tv/?channel=${channel}&parent=${window.location.hostname}" 
-                        frameborder="0" 
-                        allowfullscreen="true" 
-                        scrolling="no" 
-                        height="500" 
-                        width="100%">
-                    </iframe>
-                `;
-            } else if (data.stream_url.includes('youtube.com') || data.stream_url.includes('youtu.be')) {
-                let videoId = '';
-                if (data.stream_url.includes('v=')) {
-                    videoId = data.stream_url.split('v=').pop().split('&')[0];
-                } else if (data.stream_url.includes('youtu.be/')) {
-                    videoId = data.stream_url.split('youtu.be/').pop().split('?')[0];
-                }
-                embedContainer.innerHTML = `
-                    <iframe 
-                        width="100%" 
-                        height="500" 
-                        src="https://www.youtube.com/embed/${videoId}?autoplay=0" 
-                        frameborder="0" 
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                        allowfullscreen>
-                    </iframe>
-                `;
-            } else {
-                // Fallback - show link
-                embedContainer.innerHTML = `
-                    <div class="text-center py-5">
-                        <p class="text-light mb-3">รับชมการถ่ายทอดสดได้ที่</p>
-                        <a href="${data.stream_url}" target="_blank" class="btn btn-custom btn-lg">
-                            <i class="bi bi-box-arrow-up-right me-2"></i>ไปยังหน้าถ่ายทอดสด
-                        </a>
-                    </div>
-                `;
-            }
-        })
-        .catch(() => {
-            document.getElementById('streamPlaceholder').style.display = 'none';
-            document.getElementById('noStream').style.display = 'block';
-        });
-</script>
 
 <style>
     .stream-container {
