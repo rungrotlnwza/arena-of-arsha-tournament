@@ -1,13 +1,10 @@
 <!-- Hero Section -->
 <section class="hero-section">
-    <div class="hero-content">
-        <div class="mb-4">
-            <span class="badge bg-warning text-dark fs-5 px-4 py-2">THE ALL RANDOM TOURNAMENT</span>
-        </div>
-        <h1 class="tournament-title">Arena of Arsha</h1>
-        <p class="subtitle">ชิงเงินรางวัลรวมมูลค่ากว่า</p>
-        <div class="prize-text">60,000 บาท</div>
-        <p class="subtitle" id="tournamentInfo">รูปแบบ 2v2 Team Battle | สุ่มอาชีพ | ระบบจับคู่แบบสุ่ม</p>
+    <div class="hero-content p-3">
+        <img src="/assets/images/AOA_Logo__Name_Edit.png" class="img-fluid">
+        <p class="prize-text-1">ชิงเงินรางวัลรวมมูลค่ากว่า</p>
+        <div class="prize-text-2">60,000 THB</div>
+        <!-- <p class="subtitle" id="tournamentInfo">รูปแบบ 2v2 Team Battle | สุ่มอาชีพ | ระบบจับคู่แบบสุ่ม</p> -->
 
         <div class="mt-5">
             <a href="/register" class="btn btn-custom btn-lg" id="registerBtn">
@@ -118,12 +115,19 @@
             const reg = data.registration;
 
             // Update tournament info
-            document.getElementById('tournamentInfo').textContent =
-                `${tournament.name} | ${tournament.date} | ${tournament.location}`;
-            document.getElementById('tournamentDateDisplay').textContent =
-                new Date(tournament.date).toLocaleDateString('th-TH', {
-                    year: 'numeric', month: 'long', day: 'numeric'
-                });
+            const tournamentInfo = document.getElementById('tournamentInfo');
+            if (tournamentInfo) {
+                tournamentInfo.textContent =
+                    `${tournament.name} | ${tournament.date} | ${tournament.location}`;
+            }
+
+            const tournamentDateDisplay = document.getElementById('tournamentDateDisplay');
+            if (tournamentDateDisplay) {
+                tournamentDateDisplay.textContent =
+                    new Date(tournament.date).toLocaleDateString('th-TH', {
+                        year: 'numeric', month: 'long', day: 'numeric'
+                    });
+            }
 
             // Update info cards
             document.getElementById('infoContainer').innerHTML = `
@@ -163,12 +167,12 @@
                             ${reg.approved_teams}/${reg.max_teams}
                         </div>
                     </div>
-                    <small class="text-muted">เหลือ ${reg.remaining} ที่นั่ง</small>
+                    <small class="text-light">เหลือ ${reg.remaining} ทีม</small>
                 `;
             } else {
                 regStatus.innerHTML = `
                     <div class="mb-2"><span class="badge bg-secondary fs-6">ปิดรับสมัคร</span></div>
-                    <p class="text-muted mb-0">ขอบคุณทุกทีมที่ให้ความสนใจ</p>
+                    <p class="text-light mb-0">ขอบคุณทุกทีมที่ให้ความสนใจ</p>
                 `;
                 document.getElementById('registerBtn').classList.add('disabled');
                 document.getElementById('registerBtn').innerHTML = '<i class="bi bi-lock-fill me-2"></i>ปิดรับสมัคร';
@@ -183,7 +187,7 @@
         align-items: center;
         justify-content: center;
         text-align: center;
-        padding: 120px 20px 80px;
+        padding: 100px 20px 80px;
     }
 
     .hero-content {
@@ -199,7 +203,19 @@
         letter-spacing: 2px;
     }
 
-    .prize-text {
+    .prize-text-1 {
+        font-size: 4rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--primary-gold) 0%, #ffed4e 50%, var(--secondary-gold) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3));
+        margin: 1rem 0;
+        animation: glow 2s ease-in-out infinite alternate;
+    }
+
+    .prize-text-2 {
         font-size: 5rem;
         font-weight: 700;
         background: linear-gradient(135deg, var(--primary-gold) 0%, #ffed4e 50%, var(--secondary-gold) 100%);

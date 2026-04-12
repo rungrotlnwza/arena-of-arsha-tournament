@@ -34,7 +34,7 @@ pids/
 .eslintcache
 
 # Screenshots (generated files)
-*.png
+# *.png
 *.jpg
 *.jpeg
 
