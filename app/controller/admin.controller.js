@@ -419,9 +419,7 @@ module.exports = {
       let sql = `
         SELECT t.*, 
                p1.family_name as player1_name, p1.discord_id as player1_discord,
-               p1.bdo_name as player1_bdo, p1.family_name as player1_family,
-               p2.family_name as player2_name, p2.discord_id as player2_discord,
-               p2.bdo_name as player2_bdo, p2.family_name as player2_family
+               p2.family_name as player2_name, p2.discord_id as player2_discord
         FROM teams t
         LEFT JOIN players p1 ON t.id = p1.team_id AND p1.player_order = 1
         LEFT JOIN players p2 ON t.id = p2.team_id AND p2.player_order = 2
