@@ -15,7 +15,7 @@ module.exports = {
     const conn = await mysqli.getConnection();
 
     try {
-      const { team_name, players, experience, referral, agree_live, agree_discord } = req.body;
+      const { team_name, players, agree_live } = req.body;
 
       // Validation
       if (!team_name || !players || !Array.isArray(players) || players.length !== 2) {
@@ -64,9 +64,9 @@ module.exports = {
 
       // สร้างทีม
       const [teamResult] = await conn.query(
-        `INSERT INTO teams (team_name, status, experience, referral, agree_live) 
-         VALUES (?, 'pending', ?, ?, ?)`,
-        [team_name, experience || null, referral || null, agree_live ? 1 : 0]
+        `INSERT INTO teams (team_name, status, agree_live) 
+         VALUES (?, 'pending', ?)`,
+        [team_name, agree_live ? 1 : 0]
       );
 
       const teamId = teamResult.insertId;
@@ -79,22 +79,20 @@ module.exports = {
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
 
-        if (!player.discord_id || !player.bdo_name || !player.family_name) {
+        if (!player.discord_id || !player.family_name) {
           await conn.rollback();
           return res.status(400).json({
             success: false,
-            message: `กรุณากรอกข้อมูลผู้เล่นคนที่ ${i + 1} ให้ครบถ้วน`
+            message: `กรุณากรอกข้อมูลผู้เล่นคนที่ ${i + 1} ให้ครบถ้วน (ชื่อตระกูลและ Discord ID)`
           });
         }
 
         await conn.query(
-          `INSERT INTO players (team_id, full_name, discord_id, bdo_name, family_name, player_order) 
-           VALUES (?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO players (team_id, discord_id, family_name, player_order) 
+           VALUES (?, ?, ?, ?)`,
           [
             teamId,
-            player.family_name,
             player.discord_id,
-            player.bdo_name,
             player.family_name,
             i + 1
           ]
