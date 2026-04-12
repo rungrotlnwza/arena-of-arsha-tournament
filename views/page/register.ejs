@@ -129,6 +129,12 @@
                         ยินยอมให้ถ่ายทอดสดและเผยแพร่การแข่งขัน
                     </label>
                 </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="agreeDiscord">
+                    <label class="form-check-label" for="agreeDiscord" style="color: #ccc;">
+                        เข้าร่วม Discord แล้ว
+                    </label>
+                </div>
             </div>
 
             <!-- Error Message -->
@@ -225,7 +231,8 @@
                     discord_id: document.getElementById('player2Discord').value.trim()
                 }
             ],
-            agree_live: document.getElementById('agreeLive').checked
+            agree_live: document.getElementById('agreeLive').checked,
+            agree_discord: document.getElementById('agreeDiscord').checked
         };
 
         fetch('/api/register', {

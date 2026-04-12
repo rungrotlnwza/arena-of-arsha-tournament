@@ -13,9 +13,9 @@ module.exports = {
   // สมัครทีมเข้าแข่งขัน
   register: async (req, res) => {
     const conn = await mysqli.getConnection();
-    
+
     try {
-      const { team_name, players, experience, referral, agree_live } = req.body;
+      const { team_name, players, experience, referral, agree_live, agree_discord } = req.body;
 
       // Validation
       if (!team_name || !players || !Array.isArray(players) || players.length !== 2) {
@@ -30,7 +30,7 @@ module.exports = {
         'SELECT config_value FROM config WHERE config_key = ?',
         ['registration_open']
       );
-      
+
       if (configRows.length > 0 && configRows[0].config_value === 'false') {
         return res.status(400).json({
           success: false,
@@ -42,7 +42,7 @@ module.exports = {
         'SELECT config_value FROM config WHERE config_key = ?',
         ['max_teams']
       );
-      
+
       const maxTeams = parseInt(maxRows[0]?.config_value || '32', 10);
 
       // เริ่ม transaction
@@ -78,7 +78,7 @@ module.exports = {
       // เพิ่มผู้เล่น 2 คน
       for (let i = 0; i < players.length; i++) {
         const player = players[i];
-        
+
         if (!player.discord_id || !player.bdo_name || !player.family_name) {
           await conn.rollback();
           return res.status(400).json({
@@ -140,7 +140,7 @@ module.exports = {
         'SELECT config_key, config_value FROM config WHERE config_key IN (?, ?, ?, ?, ?, ?)',
         ['tournament_name', 'tournament_date', 'tournament_time', 'location', 'registration_open', 'max_teams']
       );
-      
+
       const config = {};
       rows.forEach(row => {
         config[row.config_key] = row.config_value;
