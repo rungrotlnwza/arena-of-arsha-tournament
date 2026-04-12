@@ -33,25 +33,18 @@ module.exports = {
         });
       }
 
-      // ตรวจสอบว่าเปิดรับสมัครอยู่หรือไม่
+      // ดึงค่าการตั้งค่า
       const [configRows] = await conn.query(
-        'SELECT config_value FROM config WHERE config_key = ?',
-        ['registration_open']
+        'SELECT config_key, config_value FROM config WHERE config_key IN (?, ?, ?)',
+        ['max_teams', 'registration_start', 'registration_end']
       );
-
-      if (configRows.length > 0 && configRows[0].config_value === 'false') {
-        return res.status(400).json({
-          success: false,
-          message: 'ปิดรับสมัครแล้ว'
-        });
-      }
-
-      const [maxRows] = await conn.query(
-        'SELECT config_value FROM config WHERE config_key = ?',
-        ['max_teams']
-      );
-
-      const maxTeams = parseInt(maxRows[0]?.config_value || '32', 10);
+      
+      const config = {};
+      configRows.forEach(row => {
+        config[row.config_key] = row.config_value;
+      });
+      
+      const maxTeams = parseInt(config.max_teams || '32', 10);
 
       // ตรวจสอบจำนวนทีมที่อนุมัติแล้ว
       const approvedCount = await getApprovedTeamsCount(conn);
@@ -59,6 +52,25 @@ module.exports = {
         return res.status(400).json({
           success: false,
           message: 'ปิดรับสมัครแล้ว (ทีมเข้าแข่งขันครบจำนวน 32 ทีม)'
+        });
+      }
+
+      // ตรวจสอบเวลารับสมัคร
+      const now = new Date();
+      const registrationStart = config.registration_start ? new Date(config.registration_start) : null;
+      const registrationEnd = config.registration_end ? new Date(config.registration_end) : null;
+
+      if (registrationStart && now < registrationStart) {
+        return res.status(400).json({
+          success: false,
+          message: 'ยังไม่ถึงเวลาเปิดรับสมัคร'
+        });
+      }
+
+      if (registrationEnd && now > registrationEnd) {
+        return res.status(400).json({
+          success: false,
+          message: 'หมดเวลารับสมัครแล้ว'
         });
       }
 

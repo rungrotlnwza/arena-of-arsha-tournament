@@ -45,6 +45,25 @@ module.exports = {
       const approvedTeams = countRows[0].count;
       const maxTeams = parseInt(config.max_teams || '32');
 
+      // คำนวณสถานะการรับสมัครตามเวลา
+      const now = new Date();
+      const registrationStart = config.registration_start ? new Date(config.registration_start) : null;
+      const registrationEnd = config.registration_end ? new Date(config.registration_end) : null;
+      
+      let registrationOpen = false;
+      let registrationStatus = 'closed'; // closed, upcoming, open, ended
+      
+      if (approvedTeams >= maxTeams) {
+        registrationStatus = 'full';
+      } else if (registrationStart && now < registrationStart) {
+        registrationStatus = 'upcoming';
+      } else if (registrationEnd && now > registrationEnd) {
+        registrationStatus = 'ended';
+      } else if (registrationStart && registrationEnd && now >= registrationStart && now <= registrationEnd) {
+        registrationOpen = true;
+        registrationStatus = 'open';
+      }
+
       res.json({
         success: true,
         data: {
@@ -58,7 +77,8 @@ module.exports = {
             prize_third: config.prize_third
           },
           registration: {
-            open: config.registration_open === 'true',
+            open: registrationOpen,
+            status: registrationStatus,
             start: config.registration_start,
             end: config.registration_end,
             approved_teams: approvedTeams,

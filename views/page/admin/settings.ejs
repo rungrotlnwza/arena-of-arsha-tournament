@@ -57,12 +57,9 @@
                         <input type="datetime-local" class="form-control bg-dark text-light" id="registration_end">
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">สถานะการรับสมัคร</label>
-                    <select class="form-select bg-dark text-light" id="registration_open">
-                        <option value="true">เปิดรับสมัคร</option>
-                        <option value="false">ปิดรับสมัคร</option>
-                    </select>
+                <div class="alert alert-info" style="background: rgba(13, 202, 240, 0.1); border-color: rgba(13, 202, 240, 0.3); color: #ddd;">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <strong>อัตโนมัติ:</strong> ระบบจะเปิดรับสมัครตามเวลาที่กำหนด และปิดเมื่อหมดเวลาหรือทีมครบจำนวน
                 </div>
             </form>
         </div>
@@ -113,7 +110,6 @@
             document.getElementById('stream_url').value = currentConfig.stream_url || '';
             document.getElementById('registration_start').value = formatDateTimeLocal(currentConfig.registration_start);
             document.getElementById('registration_end').value = formatDateTimeLocal(currentConfig.registration_end);
-            document.getElementById('registration_open').value = currentConfig.registration_open || 'true';
             
             // Show current info
             document.getElementById('currentSettings').innerHTML = `
@@ -142,8 +138,7 @@
             max_teams: document.getElementById('max_teams').value,
             stream_url: document.getElementById('stream_url').value,
             registration_start: document.getElementById('registration_start').value,
-            registration_end: document.getElementById('registration_end').value,
-            registration_open: document.getElementById('registration_open').value
+            registration_end: document.getElementById('registration_end').value
         };
         
         fetch('/api/admin/config', {
