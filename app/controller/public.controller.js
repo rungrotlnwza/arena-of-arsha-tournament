@@ -25,6 +25,16 @@ const getRoundSortValue = (round) => {
   return 9000;
 };
 
+const teamPlayerSummaryJoinSql = `
+  LEFT JOIN (
+    SELECT team_id,
+           MAX(CASE WHEN player_order = 1 THEN family_name END) as player1_name,
+           MAX(CASE WHEN player_order = 2 THEN family_name END) as player2_name
+    FROM players
+    GROUP BY team_id
+  ) player_summary ON t.id = player_summary.team_id
+`;
+
 module.exports = {
   // ดึงข้อมูลหน้าแรก
   getHomeData: async (req, res) => {
@@ -102,11 +112,10 @@ module.exports = {
     try {
       const [teams] = await mysqli.query(
         `SELECT t.id, t.team_name, t.created_at,
-                p1.family_name as player1_name,
-                p2.family_name as player2_name
+                player_summary.player1_name,
+                player_summary.player2_name
          FROM teams t
-         LEFT JOIN players p1 ON t.id = p1.team_id AND p1.player_order = 1
-         LEFT JOIN players p2 ON t.id = p2.team_id AND p2.player_order = 2
+         ${teamPlayerSummaryJoinSql}
          WHERE t.status = ?
          ORDER BY t.created_at`,
         ['approved']

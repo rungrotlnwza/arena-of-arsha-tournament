@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS bracket (
     match_number INT NOT NULL COMMENT 'หมายเลขคู่แข่งขันในรอบ',
     team1_id INT DEFAULT NULL COMMENT 'ทีมที่ 1',
     team2_id INT DEFAULT NULL COMMENT 'ทีมที่ 2',
+    team1_score INT DEFAULT NULL COMMENT 'คะแนนทีมที่ 1',
+    team2_score INT DEFAULT NULL COMMENT 'คะแนนทีมที่ 2',
     winner_id INT DEFAULT NULL COMMENT 'ทีมที่ชนะ',
     match_time DATETIME DEFAULT NULL COMMENT 'เวลาแข่งขัน',
     status ENUM('pending', 'ongoing', 'completed') DEFAULT 'pending',

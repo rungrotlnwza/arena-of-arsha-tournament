@@ -107,7 +107,7 @@
         round_1: 'รอบแรก',
         round_2: 'รอบถัดไป',
         quarter: 'รอบ 8 ทีม',
-        semi: 'รอบรองชนะเลิศ',
+        semi: 'รอบ 4 ทีมสุดท้าย',
         final: 'รอบชิงชนะเลิศ'
     };
     const boardConfig = {
@@ -171,36 +171,79 @@
             });
 
         if (grouped.round_1 && grouped.round_1.length) {
-            return buildRoundSequence(grouped.round_1.length).map(round => ({
-                key: round.key,
-                label: getRoundLabel(round.key, round.matchCount),
-                matchCount: round.matchCount,
-                slots: fillMatchSlots(grouped[round.key] || [], round.matchCount)
-            }));
+            return buildRoundSequence(grouped.round_1.length).map(round => {
+                return buildRoundDisplay(round, grouped[round.key] || []);
+            });
+        }
+
+        const orderedRoundKeys = getOrderedRoundKeys(grouped);
+
+        if (orderedRoundKeys.length) {
+            return orderedRoundKeys.map(roundKey => {
+                return buildRoundDisplay({
+                    key: roundKey,
+                    matchCount: grouped[roundKey].length
+                }, grouped[roundKey]);
+            });
         }
 
         if (fallbackFirstRoundMatchCount) {
-            return buildRoundSequence(fallbackFirstRoundMatchCount).map(round => ({
-                key: round.key,
-                label: getRoundLabel(round.key, round.matchCount),
-                matchCount: round.matchCount,
-                slots: fillMatchSlots([], round.matchCount)
-            }));
+            return buildRoundSequence(fallbackFirstRoundMatchCount).map(round => {
+                return buildRoundDisplay(round, []);
+            });
         }
 
         return [];
     }
 
+    function getOrderedRoundKeys(grouped) {
+        const preferred = preferredRounds.filter(key => Array.isArray(grouped[key]) && grouped[key].length);
+        const extra = Object.keys(grouped)
+            .filter(key => !preferredRounds.includes(key) && Array.isArray(grouped[key]) && grouped[key].length)
+            .sort((left, right) => getRoundSortValue(left) - getRoundSortValue(right));
+
+        return preferred.concat(extra);
+    }
+
+    function buildRoundDisplay(roundDefinition, matches) {
+        const actualMatchCount = matches.length;
+        const matchCount = getDisplayMatchCount(roundDefinition.key, roundDefinition.matchCount, actualMatchCount);
+
+        return {
+            key: roundDefinition.key,
+            label: getRoundLabel(roundDefinition.key, matchCount),
+            note: getRoundNote(roundDefinition.key, matchCount),
+            matchCount: matchCount,
+            displayMode: getRoundDisplayMode(roundDefinition.key, roundDefinition.displayMode, matchCount, actualMatchCount),
+            slots: fillMatchSlots(matches, matchCount)
+        };
+    }
+
     function buildRoundSequence(firstRoundMatchCount) {
         const rounds = [{
             key: 'round_1',
-            matchCount: firstRoundMatchCount
+            matchCount: firstRoundMatchCount,
+            displayMode: 'bracket'
         }];
 
         let currentRoundNumber = 1;
         let currentMatchCount = firstRoundMatchCount;
 
         while (currentMatchCount > 1) {
+            if (currentMatchCount === 4) {
+                rounds.push({
+                    key: 'semi',
+                    matchCount: 6,
+                    displayMode: 'stacked'
+                });
+                rounds.push({
+                    key: 'final',
+                    matchCount: 2,
+                    displayMode: 'stacked'
+                });
+                break;
+            }
+
             const nextMatchCount = Math.ceil(currentMatchCount / 2);
             let nextRoundKey = 'final';
 
@@ -215,13 +258,54 @@
 
             rounds.push({
                 key: nextRoundKey,
-                matchCount: nextMatchCount
+                matchCount: nextMatchCount,
+                displayMode: 'bracket'
             });
 
             currentMatchCount = nextMatchCount;
         }
 
         return rounds;
+    }
+
+    function getDisplayMatchCount(roundKey, expectedMatchCount, actualMatchCount) {
+        if (roundKey === 'semi') {
+            return Math.max(expectedMatchCount, actualMatchCount, 6);
+        }
+
+        if (roundKey === 'final' && expectedMatchCount > 1) {
+            return Math.max(expectedMatchCount, actualMatchCount, 2);
+        }
+
+        return Math.max(expectedMatchCount, actualMatchCount);
+    }
+
+    function getRoundDisplayMode(roundKey, preferredDisplayMode, matchCount, actualMatchCount) {
+        if (preferredDisplayMode) {
+            return preferredDisplayMode;
+        }
+
+        if (roundKey === 'semi' && Math.max(matchCount, actualMatchCount) > 2) {
+            return 'stacked';
+        }
+
+        if (roundKey === 'final' && Math.max(matchCount, actualMatchCount) > 1) {
+            return 'stacked';
+        }
+
+        return 'bracket';
+    }
+
+    function getRoundNote(roundKey, matchCount) {
+        if (roundKey === 'semi') {
+            return 'พบกันหมด นับคะแนนรวมเพื่อจัดอันดับ';
+        }
+
+        if (roundKey === 'final' && matchCount > 1) {
+            return 'ชิงอันดับ 3 และชิงชนะเลิศ';
+        }
+
+        return '';
     }
 
     function fillMatchSlots(matches, expectedCount) {
@@ -244,18 +328,21 @@
     function buildBoardLayout(rounds) {
         const centers = [];
         const columns = [];
-        const firstRoundCount = rounds[0].slots.length;
+        const columnHeights = rounds.map(round => getColumnContentHeight(round.slots.length));
+        const maxColumnHeight = Math.max(...columnHeights, 0);
 
         for (let roundIndex = 0; roundIndex < rounds.length; roundIndex++) {
             columns[roundIndex] = boardConfig.paddingLeft + roundIndex * (boardConfig.cardWidth + boardConfig.columnGap);
         }
 
-        centers[0] = [];
-        for (let slotIndex = 0; slotIndex < firstRoundCount; slotIndex++) {
-            centers[0][slotIndex] = boardConfig.headerHeight + (boardConfig.cardHeight / 2) + (slotIndex * (boardConfig.cardHeight + boardConfig.rowGap));
-        }
+        centers[0] = buildTopAlignedCenters(rounds[0].slots.length);
 
         for (let roundIndex = 1; roundIndex < rounds.length; roundIndex++) {
+            if (rounds[roundIndex].displayMode !== 'bracket' || rounds[roundIndex - 1].displayMode !== 'bracket') {
+                centers[roundIndex] = buildCenteredCenters(rounds[roundIndex].slots.length, maxColumnHeight);
+                continue;
+            }
+
             centers[roundIndex] = [];
 
             for (let slotIndex = 0; slotIndex < rounds[roundIndex].slots.length; slotIndex++) {
@@ -274,18 +361,60 @@
             }
         }
 
+        const bottomEdges = centers.map(roundCenters => {
+            if (!roundCenters.length) {
+                return boardConfig.headerHeight;
+            }
+
+            return roundCenters[roundCenters.length - 1] + (boardConfig.cardHeight / 2);
+        });
+
         return {
             width: columns[columns.length - 1] + boardConfig.cardWidth + boardConfig.paddingRight,
-            height: centers[0][centers[0].length - 1] + (boardConfig.cardHeight / 2) + boardConfig.paddingBottom,
+            height: Math.max(...bottomEdges, boardConfig.headerHeight) + boardConfig.paddingBottom,
             columns: columns,
             centers: centers
         };
+    }
+
+    function getColumnContentHeight(slotCount) {
+        if (!slotCount) {
+            return 0;
+        }
+
+        return (slotCount * boardConfig.cardHeight) + (Math.max(slotCount - 1, 0) * boardConfig.rowGap);
+    }
+
+    function buildTopAlignedCenters(slotCount) {
+        const centers = [];
+
+        for (let slotIndex = 0; slotIndex < slotCount; slotIndex++) {
+            centers[slotIndex] = boardConfig.headerHeight + (boardConfig.cardHeight / 2) + (slotIndex * (boardConfig.cardHeight + boardConfig.rowGap));
+        }
+
+        return centers;
+    }
+
+    function buildCenteredCenters(slotCount, availableHeight) {
+        const centers = [];
+        const columnHeight = getColumnContentHeight(slotCount);
+        const topOffset = boardConfig.headerHeight + Math.max((availableHeight - columnHeight) / 2, 0);
+
+        for (let slotIndex = 0; slotIndex < slotCount; slotIndex++) {
+            centers[slotIndex] = topOffset + (boardConfig.cardHeight / 2) + (slotIndex * (boardConfig.cardHeight + boardConfig.rowGap));
+        }
+
+        return centers;
     }
 
     function createConnectorPaths(rounds, layout) {
         let paths = '';
 
         for (let roundIndex = 0; roundIndex < rounds.length - 1; roundIndex++) {
+            if (rounds[roundIndex].displayMode !== 'bracket' || rounds[roundIndex + 1].displayMode !== 'bracket') {
+                continue;
+            }
+
             for (let slotIndex = 0; slotIndex < rounds[roundIndex].slots.length; slotIndex++) {
                 const currentCenterY = layout.centers[roundIndex][slotIndex];
                 const nextCenterY = layout.centers[roundIndex + 1][Math.floor(slotIndex / 2)];
@@ -344,12 +473,13 @@
             html += `
                 <div class="round-heading" style="left: ${layout.columns[roundIndex]}px; width: ${boardConfig.cardWidth}px;">
                     <span class="round-chip">${escapeHtml(round.label)}</span>
-                    <p class="round-count">${round.matchCount} คู่แข่งขัน</p>
+                    <p class="round-count">${escapeHtml(getRoundCountText(round.key, round.matchCount))}</p>
+                    ${round.note ? `<p class="round-note">${escapeHtml(round.note)}</p>` : ''}
                 </div>
             `;
 
             round.slots.forEach((slot, slotIndex) => {
-                html += createMatchCard(slot, layout.columns[roundIndex], layout.centers[roundIndex][slotIndex], roundIndex);
+                html += createMatchCard(round, slot, layout.columns[roundIndex], layout.centers[roundIndex][slotIndex], roundIndex);
             });
         });
 
@@ -432,15 +562,16 @@
         });
     }
 
-    function createMatchCard(slot, left, centerY, roundIndex) {
+    function createMatchCard(round, slot, left, centerY, roundIndex) {
         const top = centerY - (boardConfig.cardHeight / 2);
-        const emptyMessage = roundIndex === 0 ? 'ยังไม่มีการจับคู่' : 'รอผลจากรอบก่อนหน้า';
+        const emptyMessage = getEmptyMessage(round.key, roundIndex);
+        const matchLabel = getMatchLabel(round.key, slot.matchNumber, round.matchCount);
 
         if (!slot.match) {
             return `
                 <article class="match-card is-placeholder" style="left: ${left}px; top: ${top}px;">
                     <div class="match-header">
-                        <span class="match-number">คู่ที่ ${slot.matchNumber}</span>
+                        <span class="match-number">${escapeHtml(matchLabel)}</span>
                         <span class="match-status pending">รอแข่ง</span>
                     </div>
                     <div class="match-body">
@@ -462,6 +593,14 @@
         const isWinner2 = match.winner_id && match.winner_id === match.team2_id;
         const meta = [];
 
+        if (match.team1_score !== null || match.team2_score !== null) {
+            meta.push(`
+                <span class="match-meta-item is-highlight">
+                    <i class="bi bi-bar-chart-line me-1"></i>คะแนน ${escapeHtml(formatScoreValue(match.team1_score))} - ${escapeHtml(formatScoreValue(match.team2_score))}
+                </span>
+            `);
+        }
+
         if (match.match_time) {
             meta.push(`
                 <span class="match-meta-item">
@@ -481,7 +620,7 @@
         return `
             <article class="match-card" style="left: ${left}px; top: ${top}px;">
                 <div class="match-header">
-                    <span class="match-number">คู่ที่ ${escapeHtml(String(slot.matchNumber))}</span>
+                    <span class="match-number">${escapeHtml(matchLabel)}</span>
                     <span class="match-status ${statusKey}">${getStatusText(statusKey)}</span>
                 </div>
                 <div class="match-body">
@@ -499,6 +638,48 @@
                 </div>
             </article>
         `;
+    }
+
+    function getRoundCountText(roundKey, matchCount) {
+        if (roundKey === 'semi') {
+            return `${matchCount} คู่รอบพบกันหมด`;
+        }
+
+        if (roundKey === 'final' && matchCount > 1) {
+            return `${matchCount} คู่ตัดสินอันดับ`;
+        }
+
+        return `${matchCount} คู่แข่งขัน`;
+    }
+
+    function getMatchLabel(roundKey, matchNumber, matchCount) {
+        if (roundKey === 'semi') {
+            return `แมตช์สะสมคะแนน ${matchNumber}`;
+        }
+
+        if (roundKey === 'final' && matchCount > 1) {
+            if (matchNumber === 1) {
+                return 'ชิงอันดับที่ 3';
+            }
+
+            if (matchNumber === 2) {
+                return 'ชิงชนะเลิศ';
+            }
+        }
+
+        return `คู่ที่ ${matchNumber}`;
+    }
+
+    function getEmptyMessage(roundKey, roundIndex) {
+        if (roundKey === 'semi') {
+            return 'รอโปรแกรมแข่งรอบ 4 ทีมสุดท้าย';
+        }
+
+        if (roundKey === 'final') {
+            return 'รอสรุปอันดับเพื่อจัดคู่รอบชิง';
+        }
+
+        return roundIndex === 0 ? 'ยังไม่มีการจับคู่' : 'รอผลจากรอบก่อนหน้า';
     }
 
     function getRoundLabel(roundKey, matchCount) {
@@ -555,6 +736,14 @@
             hour: '2-digit',
             minute: '2-digit'
         });
+    }
+
+    function formatScoreValue(value) {
+        if (value === null || value === undefined || value === '') {
+            return '-';
+        }
+
+        return String(value);
     }
 
     function escapeHtml(value) {
@@ -762,6 +951,12 @@
         font-size: 14px;
     }
 
+    .round-note {
+        margin: 8px 0 0;
+        color: rgba(255, 215, 97, 0.82);
+        font-size: 12px;
+    }
+
     .match-card {
         position: absolute;
         width: 320px;
@@ -837,7 +1032,7 @@
         font-weight: 600;
     }
 
-    .team-row + .team-row {
+    .team-row+.team-row {
         border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
 
@@ -880,6 +1075,10 @@
     .match-meta-link {
         color: inherit;
         text-decoration: none;
+    }
+
+    .match-meta-item.is-highlight {
+        color: #ffd761;
     }
 
     .match-meta-link:hover {

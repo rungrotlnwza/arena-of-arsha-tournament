@@ -39,7 +39,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label">ทีมที่ 1</label>
-                    <select class="form-select bg-light text-light" id="team1Id">
+                    <select class="form-select bg-dark text-light" id="team1Id">
                         <option value="">-- ว่าง --</option>
                     </select>
                 </div>
@@ -62,6 +62,16 @@
                         <option value="ongoing">กำลังแข่ง</option>
                         <option value="completed">จบแล้ว</option>
                     </select>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-6">
+                        <label class="form-label">คะแนนทีมที่ 1</label>
+                        <input type="number" min="0" max="10" class="form-control bg-dark text-light" id="team1Score">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">คะแนนทีมที่ 2</label>
+                        <input type="number" min="0" max="10" class="form-control bg-dark text-light" id="team2Score">
+                    </div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">เวลาแข่งขัน</label>
@@ -91,7 +101,7 @@
         round_1: 'รอบแรก',
         round_2: 'รอบถัดไป',
         quarter: 'รอบ 8 ทีม',
-        semi: 'รอบรองชนะเลิศ',
+        semi: 'รอบ 4 ทีมสุดท้าย',
         final: 'รอบชิงชนะเลิศ'
     };
     const boardConfig = {
@@ -115,7 +125,7 @@
         .then(res => res.json())
         .then(result => {
             if (result.success) {
-                teamsList = result.data || [];
+                teamsList = dedupeTeams(result.data || []);
                 populateTeamSelects();
                 if (bracketData.length || initialRoundMatchCount) {
                     renderCurrentBracket();
@@ -194,32 +204,26 @@
         });
 
         if (grouped.round_1 && grouped.round_1.length) {
-            return buildRoundSequence(grouped.round_1.length).map(round => ({
-                key: round.key,
-                label: getRoundLabel(round.key, round.matchCount),
-                matchCount: round.matchCount,
-                slots: fillMatchSlots(grouped[round.key] || [], round.matchCount)
-            }));
+            return buildRoundSequence(grouped.round_1.length).map(round => {
+                return buildRoundDisplay(round, grouped[round.key] || []);
+            });
         }
 
         const orderedRoundKeys = getOrderedRoundKeys(grouped);
 
         if (orderedRoundKeys.length) {
-            return orderedRoundKeys.map(roundKey => ({
-                key: roundKey,
-                label: getRoundLabel(roundKey, grouped[roundKey].length),
-                matchCount: grouped[roundKey].length,
-                slots: fillMatchSlots(grouped[roundKey], grouped[roundKey].length)
-            }));
+            return orderedRoundKeys.map(roundKey => {
+                return buildRoundDisplay({
+                    key: roundKey,
+                    matchCount: grouped[roundKey].length
+                }, grouped[roundKey]);
+            });
         }
 
         if (fallbackFirstRoundMatchCount) {
-            return buildRoundSequence(fallbackFirstRoundMatchCount).map(round => ({
-                key: round.key,
-                label: getRoundLabel(round.key, round.matchCount),
-                matchCount: round.matchCount,
-                slots: fillMatchSlots([], round.matchCount)
-            }));
+            return buildRoundSequence(fallbackFirstRoundMatchCount).map(round => {
+                return buildRoundDisplay(round, []);
+            });
         }
 
         return [];
@@ -234,16 +238,45 @@
         return preferred.concat(extra);
     }
 
+    function buildRoundDisplay(roundDefinition, matches) {
+        const actualMatchCount = matches.length;
+        const matchCount = getDisplayMatchCount(roundDefinition.key, roundDefinition.matchCount, actualMatchCount);
+
+        return {
+            key: roundDefinition.key,
+            label: getRoundLabel(roundDefinition.key, matchCount),
+            note: getRoundNote(roundDefinition.key, matchCount),
+            matchCount: matchCount,
+            displayMode: getRoundDisplayMode(roundDefinition.key, roundDefinition.displayMode, matchCount, actualMatchCount),
+            slots: fillMatchSlots(matches, matchCount)
+        };
+    }
+
     function buildRoundSequence(firstRoundMatchCount) {
         const rounds = [{
             key: 'round_1',
-            matchCount: firstRoundMatchCount
+            matchCount: firstRoundMatchCount,
+            displayMode: 'bracket'
         }];
 
         let currentRoundNumber = 1;
         let currentMatchCount = firstRoundMatchCount;
 
         while (currentMatchCount > 1) {
+            if (currentMatchCount === 4) {
+                rounds.push({
+                    key: 'semi',
+                    matchCount: 6,
+                    displayMode: 'stacked'
+                });
+                rounds.push({
+                    key: 'final',
+                    matchCount: 2,
+                    displayMode: 'stacked'
+                });
+                break;
+            }
+
             const nextMatchCount = Math.ceil(currentMatchCount / 2);
             let nextRoundKey = 'final';
 
@@ -258,13 +291,54 @@
 
             rounds.push({
                 key: nextRoundKey,
-                matchCount: nextMatchCount
+                matchCount: nextMatchCount,
+                displayMode: 'bracket'
             });
 
             currentMatchCount = nextMatchCount;
         }
 
         return rounds;
+    }
+
+    function getDisplayMatchCount(roundKey, expectedMatchCount, actualMatchCount) {
+        if (roundKey === 'semi') {
+            return Math.max(expectedMatchCount, actualMatchCount, 6);
+        }
+
+        if (roundKey === 'final' && expectedMatchCount > 1) {
+            return Math.max(expectedMatchCount, actualMatchCount, 2);
+        }
+
+        return Math.max(expectedMatchCount, actualMatchCount);
+    }
+
+    function getRoundDisplayMode(roundKey, preferredDisplayMode, matchCount, actualMatchCount) {
+        if (preferredDisplayMode) {
+            return preferredDisplayMode;
+        }
+
+        if (roundKey === 'semi' && Math.max(matchCount, actualMatchCount) > 2) {
+            return 'stacked';
+        }
+
+        if (roundKey === 'final' && Math.max(matchCount, actualMatchCount) > 1) {
+            return 'stacked';
+        }
+
+        return 'bracket';
+    }
+
+    function getRoundNote(roundKey, matchCount) {
+        if (roundKey === 'semi') {
+            return 'พบกันหมด นับคะแนนรวมเพื่อจัดอันดับ';
+        }
+
+        if (roundKey === 'final' && matchCount > 1) {
+            return 'ชิงอันดับ 3 และชิงชนะเลิศ';
+        }
+
+        return '';
     }
 
     function fillMatchSlots(matches, expectedCount) {
@@ -287,18 +361,21 @@
     function buildBoardLayout(rounds) {
         const centers = [];
         const columns = [];
-        const firstRoundCount = rounds[0].slots.length;
+        const columnHeights = rounds.map(round => getColumnContentHeight(round.slots.length));
+        const maxColumnHeight = Math.max(...columnHeights, 0);
 
         for (let roundIndex = 0; roundIndex < rounds.length; roundIndex++) {
             columns[roundIndex] = boardConfig.paddingLeft + roundIndex * (boardConfig.cardWidth + boardConfig.columnGap);
         }
 
-        centers[0] = [];
-        for (let slotIndex = 0; slotIndex < firstRoundCount; slotIndex++) {
-            centers[0][slotIndex] = boardConfig.headerHeight + (boardConfig.cardHeight / 2) + (slotIndex * (boardConfig.cardHeight + boardConfig.rowGap));
-        }
+        centers[0] = buildTopAlignedCenters(rounds[0].slots.length);
 
         for (let roundIndex = 1; roundIndex < rounds.length; roundIndex++) {
+            if (rounds[roundIndex].displayMode !== 'bracket' || rounds[roundIndex - 1].displayMode !== 'bracket') {
+                centers[roundIndex] = buildCenteredCenters(rounds[roundIndex].slots.length, maxColumnHeight);
+                continue;
+            }
+
             centers[roundIndex] = [];
 
             for (let slotIndex = 0; slotIndex < rounds[roundIndex].slots.length; slotIndex++) {
@@ -317,18 +394,60 @@
             }
         }
 
+        const bottomEdges = centers.map(roundCenters => {
+            if (!roundCenters.length) {
+                return boardConfig.headerHeight;
+            }
+
+            return roundCenters[roundCenters.length - 1] + (boardConfig.cardHeight / 2);
+        });
+
         return {
             width: columns[columns.length - 1] + boardConfig.cardWidth + boardConfig.paddingRight,
-            height: centers[0][centers[0].length - 1] + (boardConfig.cardHeight / 2) + boardConfig.paddingBottom,
+            height: Math.max(...bottomEdges, boardConfig.headerHeight) + boardConfig.paddingBottom,
             columns: columns,
             centers: centers
         };
+    }
+
+    function getColumnContentHeight(slotCount) {
+        if (!slotCount) {
+            return 0;
+        }
+
+        return (slotCount * boardConfig.cardHeight) + (Math.max(slotCount - 1, 0) * boardConfig.rowGap);
+    }
+
+    function buildTopAlignedCenters(slotCount) {
+        const centers = [];
+
+        for (let slotIndex = 0; slotIndex < slotCount; slotIndex++) {
+            centers[slotIndex] = boardConfig.headerHeight + (boardConfig.cardHeight / 2) + (slotIndex * (boardConfig.cardHeight + boardConfig.rowGap));
+        }
+
+        return centers;
+    }
+
+    function buildCenteredCenters(slotCount, availableHeight) {
+        const centers = [];
+        const columnHeight = getColumnContentHeight(slotCount);
+        const topOffset = boardConfig.headerHeight + Math.max((availableHeight - columnHeight) / 2, 0);
+
+        for (let slotIndex = 0; slotIndex < slotCount; slotIndex++) {
+            centers[slotIndex] = topOffset + (boardConfig.cardHeight / 2) + (slotIndex * (boardConfig.cardHeight + boardConfig.rowGap));
+        }
+
+        return centers;
     }
 
     function createConnectorPaths(rounds, layout) {
         let paths = '';
 
         for (let roundIndex = 0; roundIndex < rounds.length - 1; roundIndex++) {
+            if (rounds[roundIndex].displayMode !== 'bracket' || rounds[roundIndex + 1].displayMode !== 'bracket') {
+                continue;
+            }
+
             for (let slotIndex = 0; slotIndex < rounds[roundIndex].slots.length; slotIndex++) {
                 const currentCenterY = layout.centers[roundIndex][slotIndex];
                 const nextCenterY = layout.centers[roundIndex + 1][Math.floor(slotIndex / 2)];
@@ -375,12 +494,13 @@
             html += `
                 <div class="round-heading" style="left: ${layout.columns[roundIndex]}px; width: ${boardConfig.cardWidth}px;">
                     <span class="round-chip">${escapeHtml(round.label)}</span>
-                    <p class="round-count">${round.matchCount} คู่ในรอบนี้</p>
+                    <p class="round-count">${escapeHtml(getRoundCountText(round.key, round.matchCount))}</p>
+                    ${round.note ? `<p class="round-note">${escapeHtml(round.note)}</p>` : ''}
                 </div>
             `;
 
             round.slots.forEach((slot, slotIndex) => {
-                html += createMatchCard(slot, round.key, layout.columns[roundIndex], layout.centers[roundIndex][slotIndex], roundIndex, rounds);
+                html += createMatchCard(round, slot, layout.columns[roundIndex], layout.centers[roundIndex][slotIndex], roundIndex, rounds);
             });
         });
 
@@ -388,31 +508,34 @@
         container.innerHTML = html;
     }
 
-    function createMatchCard(slot, roundKey, left, centerY, roundIndex, rounds) {
+    function createMatchCard(round, slot, left, centerY, roundIndex, rounds) {
         const top = centerY - (boardConfig.cardHeight / 2);
-        const advanceText = getAdvanceText(roundIndex, slot.matchNumber, rounds);
-        const slotKey = `${roundKey}-${slot.matchNumber}`;
-        const emptyMessage = roundIndex === 0
-            ? 'เลือกทีมจาก dropdown เพื่อเริ่มจับคู่รอบแรก'
-            : 'เลือกทีมจาก dropdown เพื่อสร้างคู่นี้';
+        const advanceText = getAdvanceText(round, roundIndex, slot.matchNumber, rounds);
+        const slotKey = `${round.key}-${slot.matchNumber}`;
+        const emptyMessage = getEmptyMessage(round, roundIndex);
+        const matchLabel = getMatchLabel(round, slot.matchNumber);
+        const primaryPlaceholderAction = getPlaceholderPrimaryAction(round);
+        const secondaryPlaceholderAction = getPlaceholderSecondaryAction(round);
+        const allowedTeamIds = getAllowedTeamIdsForRound(round.key);
+        const isAutoManagedSemi = round.key === 'semi';
 
         if (!slot.match) {
             return `
                 <article class="match-card is-placeholder" data-slot-key="${escapeAttribute(slotKey)}" style="left: ${left}px; top: ${top}px;">
                     <div class="match-header">
-                        <span class="match-number">คู่ที่ ${slot.matchNumber}</span>
+                        <span class="match-number">${escapeHtml(matchLabel)}</span>
                         <span class="match-status pending">รอทีมเข้ารอบ</span>
                     </div>
                     <div class="match-body">
                         <div class="team-row is-tbd">
-                            <select class="team-select" onchange="selectSlotTeam('${roundKey}', ${slot.matchNumber}, 'team1_id', this.value)">
-                                ${buildInlineTeamOptions('', '')}
+                            <select class="team-select" onchange="selectSlotTeam('${round.key}', ${slot.matchNumber}, 'team1_id', this.value)" ${isAutoManagedSemi ? 'disabled' : ''}>
+                                ${buildInlineTeamOptions('', '', allowedTeamIds)}
                             </select>
                             <span class="team-row-spacer"></span>
                         </div>
                         <div class="team-row is-tbd">
-                            <select class="team-select" onchange="selectSlotTeam('${roundKey}', ${slot.matchNumber}, 'team2_id', this.value)">
-                                ${buildInlineTeamOptions('', '')}
+                            <select class="team-select" onchange="selectSlotTeam('${round.key}', ${slot.matchNumber}, 'team2_id', this.value)" ${isAutoManagedSemi ? 'disabled' : ''}>
+                                ${buildInlineTeamOptions('', '', allowedTeamIds)}
                             </select>
                             <span class="team-row-spacer"></span>
                         </div>
@@ -420,8 +543,8 @@
                     <div class="match-meta is-empty">${emptyMessage}</div>
                     <div class="advance-hint">${escapeHtml(advanceText)}</div>
                     <div class="admin-action-grid">
-                        <button type="button" class="match-action-btn" disabled>รอผลจากรอบก่อน</button>
-                        <button type="button" class="match-action-btn" disabled>ยังเลือกผู้ชนะไม่ได้</button>
+                        <button type="button" class="match-action-btn" disabled>${escapeHtml(primaryPlaceholderAction)}</button>
+                        <button type="button" class="match-action-btn" disabled>${escapeHtml(secondaryPlaceholderAction)}</button>
                     </div>
                     <div class="admin-tool-row">
                         <button type="button" class="tool-btn" disabled>กำลังแข่ง</button>
@@ -438,6 +561,14 @@
         const isWinner1 = match.winner_id && match.winner_id === match.team1_id;
         const isWinner2 = match.winner_id && match.winner_id === match.team2_id;
         const meta = [];
+
+        if (match.team1_score !== null || match.team2_score !== null) {
+            meta.push(`
+                <span class="match-meta-item is-highlight">
+                    <i class="bi bi-bar-chart-line me-1"></i>คะแนน ${escapeHtml(formatScoreValue(match.team1_score))} - ${escapeHtml(formatScoreValue(match.team2_score))}
+                </span>
+            `);
+        }
 
         if (match.match_time) {
             meta.push(`
@@ -463,7 +594,13 @@
             `);
         }
 
-        if (nextRound && match.winner_name) {
+        if (round.key === 'semi' && match.winner_name) {
+            meta.push(`
+                <span class="match-meta-item is-highlight">
+                    <i class="bi bi-trophy me-1"></i>ผู้ชนะแมตช์นี้: ${escapeHtml(match.winner_name)}
+                </span>
+            `);
+        } else if (nextRound && match.winner_name) {
             meta.push(`
                 <span class="match-meta-item is-highlight">
                     <i class="bi bi-arrow-right-circle me-1"></i>${escapeHtml(match.winner_name)} เข้าสู่ ${escapeHtml(nextRound.label)}
@@ -474,19 +611,19 @@
         return `
             <article class="match-card" data-slot-key="${escapeAttribute(slotKey)}" style="left: ${left}px; top: ${top}px;">
                 <div class="match-header">
-                    <span class="match-number">คู่ที่ ${slot.matchNumber}</span>
+                    <span class="match-number">${escapeHtml(matchLabel)}</span>
                     <span class="match-status ${statusKey}">${getStatusText(statusKey)}</span>
                 </div>
                 <div class="match-body">
                     <div class="team-row ${isWinner1 ? 'is-winner' : ''} ${!match.team1_id ? 'is-tbd' : ''}">
-                        <select class="team-select" onchange="selectMatchTeam(${match.id}, 'team1_id', this.value)">
-                            ${buildInlineTeamOptions(match.team1_id, match.team2_id)}
+                        <select class="team-select" onchange="selectMatchTeam(${match.id}, 'team1_id', this.value)" ${isAutoManagedSemi ? 'disabled' : ''}>
+                            ${buildInlineTeamOptions(match.team1_id, match.team2_id, allowedTeamIds)}
                         </select>
                         ${isWinner1 ? '<i class="bi bi-trophy-fill"></i>' : '<span class="team-row-spacer"></span>'}
                     </div>
                     <div class="team-row ${isWinner2 ? 'is-winner' : ''} ${!match.team2_id ? 'is-tbd' : ''}">
-                        <select class="team-select" onchange="selectMatchTeam(${match.id}, 'team2_id', this.value)">
-                            ${buildInlineTeamOptions(match.team2_id, match.team1_id)}
+                        <select class="team-select" onchange="selectMatchTeam(${match.id}, 'team2_id', this.value)" ${isAutoManagedSemi ? 'disabled' : ''}>
+                            ${buildInlineTeamOptions(match.team2_id, match.team1_id, allowedTeamIds)}
                         </select>
                         ${isWinner2 ? '<i class="bi bi-trophy-fill"></i>' : '<span class="team-row-spacer"></span>'}
                     </div>
@@ -495,14 +632,21 @@
                     ${meta.length ? meta.join('') : 'ยังไม่มีข้อมูลเพิ่มเติม'}
                 </div>
                 <div class="advance-hint">${escapeHtml(advanceText)}</div>
-                <div class="admin-action-grid">
-                    <button type="button" class="match-action-btn ${isWinner1 ? 'is-active' : ''}" onclick="setWinner(${match.id}, ${match.team1_id || 'null'})" ${match.team1_id ? '' : 'disabled'}>
-                        ${escapeHtml(match.team1_name || 'ทีมที่ 1')} ชนะ
-                    </button>
-                    <button type="button" class="match-action-btn ${isWinner2 ? 'is-active' : ''}" onclick="setWinner(${match.id}, ${match.team2_id || 'null'})" ${match.team2_id ? '' : 'disabled'}>
-                        ${escapeHtml(match.team2_name || 'ทีมที่ 2')} ชนะ
-                    </button>
-                </div>
+                ${round.key === 'semi' ? `
+                    <div class="admin-action-grid">
+                        <button type="button" class="match-action-btn" disabled>กรอกคะแนนผ่านรายละเอียด</button>
+                        <button type="button" class="match-action-btn" disabled>รอบนี้รองรับผลเสมอ</button>
+                    </div>
+                ` : `
+                    <div class="admin-action-grid">
+                        <button type="button" class="match-action-btn ${isWinner1 ? 'is-active' : ''}" onclick="setWinner(${match.id}, ${match.team1_id || 'null'})" ${match.team1_id ? '' : 'disabled'}>
+                            ${escapeHtml(match.team1_name || 'ทีมที่ 1')} ชนะ
+                        </button>
+                        <button type="button" class="match-action-btn ${isWinner2 ? 'is-active' : ''}" onclick="setWinner(${match.id}, ${match.team2_id || 'null'})" ${match.team2_id ? '' : 'disabled'}>
+                            ${escapeHtml(match.team2_name || 'ทีมที่ 2')} ชนะ
+                        </button>
+                    </div>
+                `}
                 <div class="admin-tool-row">
                     <button type="button" class="tool-btn" onclick="setOngoing(${match.id})">กำลังแข่ง</button>
                     <button type="button" class="tool-btn" onclick="clearWinner(${match.id})">ล้างผล</button>
@@ -512,11 +656,99 @@
         `;
     }
 
-    function getAdvanceText(roundIndex, matchNumber, rounds) {
+    function getRoundCountText(roundKey, matchCount) {
+        if (roundKey === 'semi') {
+            return `${matchCount} คู่รอบพบกันหมด`;
+        }
+
+        if (roundKey === 'final' && matchCount > 1) {
+            return `${matchCount} คู่ตัดสินอันดับ`;
+        }
+
+        return `${matchCount} คู่ในรอบนี้`;
+    }
+
+    function getMatchLabel(round, matchNumber) {
+        if (round.key === 'semi') {
+            return `แมตช์สะสมคะแนน ${matchNumber}`;
+        }
+
+        if (round.key === 'final' && round.matchCount > 1) {
+            if (matchNumber === 1) {
+                return 'ชิงอันดับที่ 3';
+            }
+
+            if (matchNumber === 2) {
+                return 'ชิงชนะเลิศ';
+            }
+        }
+
+        return `คู่ที่ ${matchNumber}`;
+    }
+
+    function getEmptyMessage(round, roundIndex) {
+        if (round.key === 'semi') {
+            return 'ระบบจะสร้างโปรแกรมแข่งรอบ 4 ทีมสุดท้ายให้อัตโนมัติ เมื่อได้ครบ 4 ทีมจากรอบก่อนหน้า';
+        }
+
+        if (round.key === 'final' && round.matchCount > 1) {
+            return 'รอสรุปอันดับเพื่อจัดคู่ชิงอันดับและชิงแชมป์';
+        }
+
+        return roundIndex === 0
+            ? 'เลือกทีมจาก dropdown เพื่อเริ่มจับคู่รอบแรก'
+            : 'เลือกทีมจาก dropdown เพื่อสร้างคู่นี้';
+    }
+
+    function getPlaceholderPrimaryAction(round) {
+        if (round.key === 'semi') {
+            return 'รอระบบจัดคู่รอบพบกันหมด';
+        }
+
+        if (round.key === 'final' && round.matchCount > 1) {
+            return 'รอสรุปอันดับรอบก่อน';
+        }
+
+        return 'รอผลจากรอบก่อน';
+    }
+
+    function getPlaceholderSecondaryAction(round) {
+        if (round.key === 'semi') {
+            return 'รอผลจากรอบ 8 ทีม';
+        }
+
+        if (round.key === 'final' && round.matchCount > 1) {
+            return 'ยังเลือกผู้ชนะไม่ได้';
+        }
+
+        return 'ยังเลือกผู้ชนะไม่ได้';
+    }
+
+    function getAdvanceText(round, roundIndex, matchNumber, rounds) {
         const nextRound = rounds[roundIndex + 1];
+
+        if (round.key === 'semi') {
+            return 'รอบนี้แข่งแบบพบกันหมด ใช้คะแนนรวมจัดอันดับ 2 ทีมเข้าสู่รอบชิง';
+        }
+
+        if (round.key === 'final' && round.matchCount > 1) {
+            if (matchNumber === 1) {
+                return 'แมตช์สำหรับตัดสินอันดับที่ 3';
+            }
+
+            if (matchNumber === 2) {
+                return 'แมตช์สำหรับตัดสินแชมป์รายการ';
+            }
+
+            return 'แมตช์สำหรับตัดสินอันดับ';
+        }
 
         if (!nextRound) {
             return 'ผู้ชนะของคู่นี้จะเป็นแชมป์รายการ';
+        }
+
+        if (nextRound.key === 'semi') {
+            return 'ผู้ชนะจะผ่านเข้าสู่รอบ 4 ทีมสุดท้าย';
         }
 
         return `ผู้ชนะจะเข้าสู่ ${nextRound.label} คู่ที่ ${Math.ceil(matchNumber / 2)}`;
@@ -578,6 +810,14 @@
         });
     }
 
+    function formatScoreValue(value) {
+        if (value === null || value === undefined || value === '') {
+            return '-';
+        }
+
+        return String(value);
+    }
+
     function toDateTimeLocalValue(value) {
         if (!value) {
             return '';
@@ -588,22 +828,87 @@
         return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
     }
 
-    function populateTeamSelects() {
-        const options = teamsList
-            .map(team => `<option value="${team.id}">${escapeHtml(team.team_name)}</option>`)
-            .join('');
+    function dedupeTeams(teams) {
+        const deduped = [];
+        const seenIds = new Set();
 
-        document.getElementById('team1Id').innerHTML = '<option value="">-- ว่าง --</option>' + options;
-        document.getElementById('team2Id').innerHTML = '<option value="">-- ว่าง --</option>' + options;
+        teams.forEach(team => {
+            const teamId = String(team.id);
+
+            if (seenIds.has(teamId)) {
+                return;
+            }
+
+            seenIds.add(teamId);
+            deduped.push(team);
+        });
+
+        return deduped;
     }
 
-    function buildInlineTeamOptions(selectedId, excludedId) {
+    function getRoundSequenceForCurrentState() {
+        const firstRoundMatchCount = bracketData.filter(match => match.round === 'round_1').length || initialRoundMatchCount;
+
+        if (!firstRoundMatchCount) {
+            return [];
+        }
+
+        return buildRoundSequence(firstRoundMatchCount);
+    }
+
+    function getPreviousRoundKey(roundKey) {
+        const roundSequence = getRoundSequenceForCurrentState();
+        const currentRoundIndex = roundSequence.findIndex(round => round.key === roundKey);
+
+        if (currentRoundIndex <= 0) {
+            return null;
+        }
+
+        return roundSequence[currentRoundIndex - 1].key;
+    }
+
+    function getQualifiedSemiTeamIds() {
+        const feederRoundKey = getPreviousRoundKey('semi');
+
+        if (!feederRoundKey) {
+            return [];
+        }
+
+        return bracketData
+            .filter(match => match.round === feederRoundKey && match.winner_id)
+            .sort((left, right) => (left.match_number || 0) - (right.match_number || 0))
+            .map(match => String(match.winner_id));
+    }
+
+    function getAllowedTeamIdsForRound(roundKey) {
+        if (roundKey === 'semi') {
+            return getQualifiedSemiTeamIds();
+        }
+
+        return null;
+    }
+
+    function populateTeamSelects(selectedTeam1Id, selectedTeam2Id, roundKey) {
+        const allowedTeamIds = getAllowedTeamIdsForRound(roundKey);
+
+        document.getElementById('team1Id').innerHTML = buildInlineTeamOptions(selectedTeam1Id || '', selectedTeam2Id || '', allowedTeamIds);
+        document.getElementById('team2Id').innerHTML = buildInlineTeamOptions(selectedTeam2Id || '', selectedTeam1Id || '', allowedTeamIds);
+    }
+
+    function buildInlineTeamOptions(selectedId, excludedId, allowedTeamIds) {
         const selectedValue = selectedId ? String(selectedId) : '';
         const excludedValue = excludedId ? String(excludedId) : '';
+        const allowedValues = Array.isArray(allowedTeamIds)
+            ? allowedTeamIds.map(teamId => String(teamId))
+            : null;
         let options = '<option value="">-- ว่าง --</option>';
 
         teamsList.forEach(team => {
             const teamId = String(team.id);
+
+            if (allowedValues && !allowedValues.includes(teamId) && teamId !== selectedValue) {
+                return;
+            }
 
             if (excludedValue && teamId === excludedValue && teamId !== selectedValue) {
                 return;
@@ -618,19 +923,15 @@
     function getExistingRoundMatchCount(roundKey) {
         const matchesInRound = bracketData.filter(match => match.round === roundKey).length;
 
-        if (matchesInRound) {
-            return matchesInRound;
-        }
-
         if (initialRoundMatchCount) {
             const round = buildRoundSequence(initialRoundMatchCount).find(item => item.key === roundKey);
 
             if (round) {
-                return round.matchCount;
+                return getDisplayMatchCount(roundKey, round.matchCount, matchesInRound);
             }
         }
 
-        return 1;
+        return getDisplayMatchCount(roundKey, matchesInRound || 1, matchesInRound);
     }
 
     function getExpectedRoundMatchCount(roundKey) {
@@ -641,7 +942,9 @@
         }
 
         const round = buildRoundSequence(firstRoundMatchCount).find(item => item.key === roundKey);
-        return round ? round.matchCount : getExistingRoundMatchCount(roundKey);
+        return round
+            ? getDisplayMatchCount(roundKey, round.matchCount, bracketData.filter(match => match.round === roundKey).length)
+            : getExistingRoundMatchCount(roundKey);
     }
 
     function getMatchById(matchId) {
@@ -723,8 +1026,8 @@
             }
 
             card.outerHTML = createMatchCard(
+                rounds[roundIndex],
                 rounds[roundIndex].slots[slotIndex],
-                rounds[roundIndex].key,
                 layout.columns[roundIndex],
                 layout.centers[roundIndex][slotIndex],
                 roundIndex,
@@ -784,12 +1087,22 @@
             overrides.winner_id = null;
         }
 
+        const didTeamsChange = (matchLike.team1_id || null) !== (overrides.team1_id || null)
+            || (matchLike.team2_id || null) !== (overrides.team2_id || null);
+
+        if (didTeamsChange) {
+            overrides.team1_score = null;
+            overrides.team2_score = null;
+        }
+
         const nextWinnerId = Object.prototype.hasOwnProperty.call(overrides, 'winner_id')
             ? overrides.winner_id
             : (matchLike.winner_id || null);
 
         if ((matchLike.team1_id || null) === (overrides.team1_id || null)
             && (matchLike.team2_id || null) === (overrides.team2_id || null)
+            && (matchLike.team1_score ?? null) === (Object.prototype.hasOwnProperty.call(overrides, 'team1_score') ? overrides.team1_score : (matchLike.team1_score ?? null))
+            && (matchLike.team2_score ?? null) === (Object.prototype.hasOwnProperty.call(overrides, 'team2_score') ? overrides.team2_score : (matchLike.team2_score ?? null))
             && (matchLike.winner_id || null) === nextWinnerId) {
             return null;
         }
@@ -807,6 +1120,8 @@
                 match_number: matchNumber,
                 team1_id: null,
                 team2_id: null,
+                team1_score: null,
+                team2_score: null,
                 winner_id: null,
                 status: 'pending',
                 match_time: null,
@@ -943,6 +1258,8 @@
             round: match.round,
             team1_id: match.team1_id || null,
             team2_id: match.team2_id || null,
+            team1_score: match.team1_score ?? null,
+            team2_score: match.team2_score ?? null,
             winner_id: match.winner_id || null,
             status: match.status || 'pending',
             match_time: match.match_time ? toDateTimeLocalValue(match.match_time) : null,
@@ -988,16 +1305,24 @@
     }
 
     function clearWinner(matchId) {
+        const match = getMatchById(matchId);
+
         submitMatchUpdate(matchId, {
             winner_id: null,
-            status: 'pending'
+            status: 'pending',
+            team1_score: match && match.round === 'semi' ? null : undefined,
+            team2_score: match && match.round === 'semi' ? null : undefined
         });
     }
 
     function setOngoing(matchId) {
+        const match = getMatchById(matchId);
+
         submitMatchUpdate(matchId, {
             winner_id: null,
-            status: 'ongoing'
+            status: 'ongoing',
+            team1_score: match && match.round === 'semi' ? null : undefined,
+            team2_score: match && match.round === 'semi' ? null : undefined
         });
     }
 
@@ -1011,9 +1336,15 @@
         document.getElementById('matchId').value = match.id;
         document.getElementById('matchRound').value = match.round;
         document.getElementById('matchRoundLabel').value = getRoundLabel(match.round, getExpectedRoundMatchCount(match.round));
+        populateTeamSelects(match.team1_id || '', match.team2_id || '', match.round);
         document.getElementById('team1Id').value = match.team1_id || '';
         document.getElementById('team2Id').value = match.team2_id || '';
+        document.getElementById('team1Id').disabled = match.round === 'semi';
+        document.getElementById('team2Id').disabled = match.round === 'semi';
+        document.getElementById('winnerId').disabled = match.round === 'semi';
         document.getElementById('matchStatus').value = getStatusKey(match.status);
+        document.getElementById('team1Score').value = match.team1_score ?? '';
+        document.getElementById('team2Score').value = match.team2_score ?? '';
         document.getElementById('matchTime').value = toDateTimeLocalValue(match.match_time);
         document.getElementById('matchStream').value = match.stream_url || '';
         document.getElementById('matchNotes').value = match.notes || '';
@@ -1022,6 +1353,17 @@
         document.getElementById('winnerId').value = match.winner_id || '';
 
         new bootstrap.Modal(document.getElementById('matchModal')).show();
+    }
+
+    function refreshMatchModalTeamOptions() {
+        const roundKey = document.getElementById('matchRound').value;
+        const team1Value = document.getElementById('team1Id').value || '';
+        const team2Value = document.getElementById('team2Id').value || '';
+
+        populateTeamSelects(team1Value, team2Value, roundKey);
+        document.getElementById('team1Id').value = team1Value;
+        document.getElementById('team2Id').value = team2Value;
+        updateWinnerOptions();
     }
 
     function updateWinnerOptions() {
@@ -1042,8 +1384,8 @@
         document.getElementById('winnerId').innerHTML = options;
     }
 
-    document.getElementById('team1Id').addEventListener('change', updateWinnerOptions);
-    document.getElementById('team2Id').addEventListener('change', updateWinnerOptions);
+    document.getElementById('team1Id').addEventListener('change', refreshMatchModalTeamOptions);
+    document.getElementById('team2Id').addEventListener('change', refreshMatchModalTeamOptions);
 
     function saveMatch() {
         const matchId = document.getElementById('matchId').value;
@@ -1061,6 +1403,8 @@
                 round: document.getElementById('matchRound').value,
                 team1_id: document.getElementById('team1Id').value || null,
                 team2_id: document.getElementById('team2Id').value || null,
+                team1_score: document.getElementById('team1Score').value || null,
+                team2_score: document.getElementById('team2Score').value || null,
                 winner_id: document.getElementById('winnerId').value || null,
                 status: document.getElementById('matchStatus').value,
                 match_time: document.getElementById('matchTime').value || null,
@@ -1229,6 +1573,59 @@
         margin: 12px 0 0;
         color: rgba(255, 255, 255, 0.72);
         font-size: 14px;
+    }
+
+    .round-note {
+        margin: 8px 0 0;
+        color: rgba(255, 215, 97, 0.82);
+        font-size: 12px;
+    }
+
+    #matchModal .modal-body {
+        color: #f1f3f5;
+    }
+
+    #matchModal .form-label {
+        display: inline-block;
+        margin-bottom: 8px;
+        color: rgba(255, 255, 255, 0.82);
+        font-weight: 600;
+    }
+
+    #matchModal .form-control,
+    #matchModal .form-select,
+    #matchModal textarea.form-control {
+        border-color: rgba(255, 255, 255, 0.18);
+        background: rgba(255, 255, 255, 0.04) !important;
+        color: #f8f9fa !important;
+    }
+
+    #matchModal .form-control::placeholder,
+    #matchModal textarea.form-control::placeholder {
+        color: rgba(255, 255, 255, 0.48);
+    }
+
+    #matchModal .form-control:focus,
+    #matchModal .form-select:focus,
+    #matchModal textarea.form-control:focus {
+        border-color: rgba(255, 215, 0, 0.48);
+        box-shadow: 0 0 0 0.2rem rgba(255, 215, 0, 0.12);
+    }
+
+    #matchModal .form-control:disabled,
+    #matchModal .form-select:disabled {
+        background: rgba(255, 255, 255, 0.08) !important;
+        color: rgba(255, 255, 255, 0.58) !important;
+        cursor: not-allowed;
+    }
+
+    #matchModal .form-select option {
+        color: #111;
+    }
+
+    #matchModal input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+        filter: invert(1) brightness(0.92);
+        cursor: pointer;
     }
 
     .match-card {

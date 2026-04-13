@@ -87,6 +87,8 @@ CREATE TABLE bracket (
     match_number INT NOT NULL COMMENT 'เลขคู่แข่งขันในรอบนั้น',
     team1_id INT NULL COMMENT 'ทีมฝั่งที่ 1 (null = ยังไม่จับคู่)',
     team2_id INT NULL COMMENT 'ทีมฝั่งที่ 2 (null = ยังไม่จับคู่ หรือบาย)',
+    team1_score INT NULL COMMENT 'คะแนนทีมฝั่งที่ 1',
+    team2_score INT NULL COMMENT 'คะแนนทีมฝั่งที่ 2',
     winner_id INT NULL COMMENT 'ทีมที่ชนะ (null = ยังไม่แข่ง)',
     match_time DATETIME NULL COMMENT 'เวลาแข่งขัน (ถ้ากำหนด)',
     status ENUM('pending', 'ongoing', 'completed') DEFAULT 'pending',

@@ -64,6 +64,18 @@ const buildRoundSequence = (firstRoundMatchCount) => {
   let currentMatchCount = firstRoundMatchCount;
 
   while (currentMatchCount > 1) {
+    if (currentMatchCount === 4) {
+      rounds.push({
+        key: 'semi',
+        matchCount: 6
+      });
+      rounds.push({
+        key: 'final',
+        matchCount: 2
+      });
+      break;
+    }
+
     const nextMatchCount = Math.ceil(currentMatchCount / 2);
     let nextRoundKey = 'final';
 
@@ -98,6 +110,17 @@ const getNextRoundKey = (round, firstRoundMatchCount) => {
   return rounds[currentIndex + 1].key;
 };
 
+const getPreviousRoundKey = (round, firstRoundMatchCount) => {
+  const rounds = buildRoundSequence(firstRoundMatchCount);
+  const currentIndex = rounds.findIndex(item => item.key === round);
+
+  if (currentIndex <= 0) {
+    return null;
+  }
+
+  return rounds[currentIndex - 1].key;
+};
+
 const normalizeBracketId = (value) => {
   if (value === undefined || value === null || value === '') {
     return null;
@@ -113,6 +136,15 @@ const normalizeBracketText = (value) => {
   }
 
   return value;
+};
+
+const normalizeBracketScore = (value) => {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+
+  const parsedValue = parseInt(value, 10);
+  return Number.isNaN(parsedValue) ? null : parsedValue;
 };
 
 const normalizeBracketStatus = (status, winnerId) => {
@@ -131,6 +163,78 @@ const normalizeBracketStatus = (status, winnerId) => {
   }
 
   return safeStatus;
+};
+
+const validateBracketScores = (round, team1Id, team2Id, team1Score, team2Score) => {
+  const hasTeam1Score = team1Score !== null;
+  const hasTeam2Score = team2Score !== null;
+
+  if (hasTeam1Score !== hasTeam2Score) {
+    return 'กรุณากรอกคะแนนของทั้งสองทีมให้ครบ';
+  }
+
+  const scores = [team1Score, team2Score].filter(score => score !== null);
+  const hasInvalidScore = scores.some(score => score < 0 || score > 10);
+
+  if (hasInvalidScore) {
+    return 'คะแนนต้องอยู่ระหว่าง 0 ถึง 10';
+  }
+
+  if (scores.length && (!team1Id || !team2Id)) {
+    return 'ต้องมีทีมครบทั้งสองฝั่งก่อนจึงจะบันทึกคะแนนได้';
+  }
+
+  if (round !== 'semi' && team1Score !== null && team2Score !== null && team1Score === team2Score) {
+    return 'รอบแพ้คัดออกไม่สามารถเสมอกันได้';
+  }
+
+  return null;
+};
+
+const resolveBracketOutcome = ({
+  round,
+  team1Id,
+  team2Id,
+  requestedWinnerId,
+  requestedStatus,
+  team1Score,
+  team2Score
+}) => {
+  let safeWinnerId = requestedWinnerId && (requestedWinnerId === team1Id || requestedWinnerId === team2Id)
+    ? requestedWinnerId
+    : null;
+  let safeStatus = normalizeBracketStatus(requestedStatus, safeWinnerId);
+
+  if (team1Score === null || team2Score === null) {
+    return {
+      safeWinnerId: safeWinnerId,
+      safeStatus: safeStatus
+    };
+  }
+
+  if (round === 'semi') {
+    if (team1Score > team2Score) {
+      safeWinnerId = team1Id;
+    } else if (team2Score > team1Score) {
+      safeWinnerId = team2Id;
+    } else {
+      safeWinnerId = null;
+    }
+
+    return {
+      safeWinnerId: safeWinnerId,
+      safeStatus: 'completed'
+    };
+  }
+
+  if (!safeWinnerId) {
+    safeWinnerId = team1Score > team2Score ? team1Id : team2Id;
+  }
+
+  return {
+    safeWinnerId: safeWinnerId,
+    safeStatus: 'completed'
+  };
 };
 
 const getFirstRoundMatchCount = async (conn) => {
@@ -153,6 +257,18 @@ const bracketSelectSql = `
   LEFT JOIN teams tw ON b.winner_id = tw.id
 `;
 
+const teamPlayerSummaryJoinSql = `
+  LEFT JOIN (
+    SELECT team_id,
+           MAX(CASE WHEN player_order = 1 THEN family_name END) as player1_name,
+           MAX(CASE WHEN player_order = 1 THEN discord_id END) as player1_discord,
+           MAX(CASE WHEN player_order = 2 THEN family_name END) as player2_name,
+           MAX(CASE WHEN player_order = 2 THEN discord_id END) as player2_discord
+    FROM players
+    GROUP BY team_id
+  ) player_summary ON t.id = player_summary.team_id
+`;
+
 const getBracketMatches = async (conn) => {
   const [matches] = await conn.query(bracketSelectSql);
   return sortBracketMatches(matches);
@@ -171,10 +287,438 @@ const getBracketMatchesByIds = async (conn, ids) => {
   return sortBracketMatches(matches);
 };
 
+const normalizeScoredMatches = async (conn, affectedMatchIds = new Set()) => {
+  const [rows] = await conn.query(
+    `SELECT *
+     FROM bracket
+     WHERE team1_id IS NOT NULL
+       AND team2_id IS NOT NULL
+       AND team1_score IS NOT NULL
+       AND team2_score IS NOT NULL`
+  );
+
+  for (const row of rows) {
+    const resolvedOutcome = resolveBracketOutcome({
+      round: row.round,
+      team1Id: row.team1_id,
+      team2Id: row.team2_id,
+      requestedWinnerId: row.winner_id,
+      requestedStatus: row.status,
+      team1Score: row.team1_score,
+      team2Score: row.team2_score
+    });
+
+    if ((row.winner_id || null) === (resolvedOutcome.safeWinnerId || null) && row.status === resolvedOutcome.safeStatus) {
+      continue;
+    }
+
+    await conn.query(
+      `UPDATE bracket
+       SET winner_id = ?, status = ?
+       WHERE id = ?`,
+      [resolvedOutcome.safeWinnerId, resolvedOutcome.safeStatus, row.id]
+    );
+
+    affectedMatchIds.add(row.id);
+  }
+};
+
+const buildSemiRoundRobinMatches = (teamIds) => {
+  if (teamIds.length !== 4) {
+    return [];
+  }
+
+  return [
+    { match_number: 1, team1_id: teamIds[0], team2_id: teamIds[1] },
+    { match_number: 2, team1_id: teamIds[2], team2_id: teamIds[3] },
+    { match_number: 3, team1_id: teamIds[0], team2_id: teamIds[2] },
+    { match_number: 4, team1_id: teamIds[1], team2_id: teamIds[3] },
+    { match_number: 5, team1_id: teamIds[0], team2_id: teamIds[3] },
+    { match_number: 6, team1_id: teamIds[1], team2_id: teamIds[2] }
+  ];
+};
+
+const getSemiQualifiedTeams = async (conn, firstRoundMatchCount) => {
+  const feederRoundKey = getPreviousRoundKey('semi', firstRoundMatchCount);
+  const rounds = buildRoundSequence(firstRoundMatchCount);
+  const semiRoundIndex = rounds.findIndex(item => item.key === 'semi');
+  const feederRound = semiRoundIndex > 0 ? rounds[semiRoundIndex - 1] : null;
+
+  if (!feederRoundKey || !feederRound) {
+    return {
+      feederRoundKey: null,
+      expectedTeamCount: 0,
+      teamIds: []
+    };
+  }
+
+  const [rows] = await conn.query(
+    'SELECT match_number, winner_id FROM bracket WHERE round = ? ORDER BY match_number',
+    [feederRoundKey]
+  );
+
+  const teamIds = rows
+    .sort((left, right) => (left.match_number || 0) - (right.match_number || 0))
+    .filter(row => row.winner_id)
+    .map(row => row.winner_id);
+
+  return {
+    feederRoundKey: feederRoundKey,
+    expectedTeamCount: feederRound.matchCount,
+    teamIds: teamIds
+  };
+};
+
+const resetRoundMatches = async (conn, roundKey, affectedMatchIds = new Set()) => {
+  const [rows] = await conn.query(
+    'SELECT id, team1_id, team2_id, team1_score, team2_score, winner_id, status FROM bracket WHERE round = ?',
+    [roundKey]
+  );
+
+  for (const row of rows) {
+    const needsReset = row.team1_id
+      || row.team2_id
+      || row.team1_score !== null
+      || row.team2_score !== null
+      || row.winner_id
+      || row.status !== 'pending';
+
+    if (!needsReset) {
+      continue;
+    }
+
+    await conn.query(
+      `UPDATE bracket
+       SET team1_id = NULL, team2_id = NULL, team1_score = NULL, team2_score = NULL, winner_id = NULL, status = ?
+       WHERE id = ?`,
+      ['pending', row.id]
+    );
+
+    affectedMatchIds.add(row.id);
+  }
+
+  return rows.length > 0;
+};
+
+const syncSemiRoundRobinMatches = async (conn, firstRoundMatchCount, affectedMatchIds = new Set()) => {
+  const semiQualified = await getSemiQualifiedTeams(conn, firstRoundMatchCount);
+  const uniqueQualifiedTeamIds = Array.from(new Set(semiQualified.teamIds.map(teamId => String(teamId))));
+  const [existingSemiRows] = await conn.query(
+    'SELECT * FROM bracket WHERE round = ? ORDER BY match_number',
+    ['semi']
+  );
+  const existingSemiByMatchNumber = new Map(
+    existingSemiRows.map(row => [row.match_number, row])
+  );
+  const canAutoBuildSemi = semiQualified.expectedTeamCount === 4
+    && semiQualified.teamIds.length === 4
+    && uniqueQualifiedTeamIds.length === 4;
+  let didSemiStructureChange = false;
+
+  if (!canAutoBuildSemi) {
+    for (const row of existingSemiRows) {
+      const needsReset = row.team1_id
+        || row.team2_id
+        || row.team1_score !== null
+        || row.team2_score !== null
+        || row.winner_id
+        || row.status !== 'pending';
+
+      if (!needsReset) {
+        continue;
+      }
+
+      await conn.query(
+        `UPDATE bracket
+         SET team1_id = NULL, team2_id = NULL, team1_score = NULL, team2_score = NULL, winner_id = NULL, status = ?
+         WHERE id = ?`,
+        ['pending', row.id]
+      );
+
+      affectedMatchIds.add(row.id);
+      didSemiStructureChange = true;
+    }
+
+    await resetRoundMatches(conn, 'final', affectedMatchIds);
+
+    return;
+  }
+
+  const semiMatches = buildSemiRoundRobinMatches(semiQualified.teamIds);
+
+  for (const semiMatch of semiMatches) {
+    const existingSemiMatch = existingSemiByMatchNumber.get(semiMatch.match_number);
+
+    if (!existingSemiMatch) {
+      const [insertResult] = await conn.query(
+        `INSERT INTO bracket (round, match_number, team1_id, team2_id, status)
+         VALUES (?, ?, ?, ?, ?)`,
+        ['semi', semiMatch.match_number, semiMatch.team1_id, semiMatch.team2_id, 'pending']
+      );
+
+      affectedMatchIds.add(insertResult.insertId);
+      didSemiStructureChange = true;
+      continue;
+    }
+
+    const didTeamsChange = (existingSemiMatch.team1_id || null) !== semiMatch.team1_id
+      || (existingSemiMatch.team2_id || null) !== semiMatch.team2_id;
+    const nextTeam1Score = didTeamsChange ? null : existingSemiMatch.team1_score;
+    const nextTeam2Score = didTeamsChange ? null : existingSemiMatch.team2_score;
+    let nextWinnerId = existingSemiMatch.winner_id;
+    let nextStatus = existingSemiMatch.status;
+
+    if (didTeamsChange) {
+      nextWinnerId = null;
+      nextStatus = 'pending';
+    }
+
+    if (nextWinnerId && nextWinnerId !== semiMatch.team1_id && nextWinnerId !== semiMatch.team2_id) {
+      nextWinnerId = null;
+      nextStatus = 'pending';
+    }
+
+    const resolvedOutcome = resolveBracketOutcome({
+      round: 'semi',
+      team1Id: semiMatch.team1_id,
+      team2Id: semiMatch.team2_id,
+      requestedWinnerId: nextWinnerId,
+      requestedStatus: nextStatus,
+      team1Score: nextTeam1Score,
+      team2Score: nextTeam2Score
+    });
+    const didMatchChange = didTeamsChange
+      || (existingSemiMatch.team1_score !== nextTeam1Score)
+      || (existingSemiMatch.team2_score !== nextTeam2Score)
+      || (existingSemiMatch.winner_id || null) !== (resolvedOutcome.safeWinnerId || null)
+      || existingSemiMatch.status !== resolvedOutcome.safeStatus;
+
+    if (!didMatchChange) {
+      continue;
+    }
+
+    await conn.query(
+      `UPDATE bracket
+       SET team1_id = ?, team2_id = ?, team1_score = ?, team2_score = ?, winner_id = ?, status = ?
+       WHERE id = ?`,
+      [
+        semiMatch.team1_id,
+        semiMatch.team2_id,
+        nextTeam1Score,
+        nextTeam2Score,
+        resolvedOutcome.safeWinnerId,
+        resolvedOutcome.safeStatus,
+        existingSemiMatch.id
+      ]
+    );
+
+    affectedMatchIds.add(existingSemiMatch.id);
+    didSemiStructureChange = true;
+  }
+
+  if (didSemiStructureChange) {
+    await resetRoundMatches(conn, 'final', affectedMatchIds);
+  }
+};
+
+const validateSemiTeams = async (conn, team1Id, team2Id, firstRoundMatchCount) => {
+  if (!team1Id && !team2Id) {
+    return null;
+  }
+
+  if (team1Id && team2Id && team1Id === team2Id) {
+    return 'ไม่สามารถเลือกทีมซ้ำกันในแมตช์เดียวกันได้';
+  }
+
+  const semiQualified = await getSemiQualifiedTeams(conn, firstRoundMatchCount);
+  const uniqueQualifiedTeamIds = Array.from(new Set(semiQualified.teamIds.map(teamId => String(teamId))));
+
+  if (semiQualified.expectedTeamCount !== 4 || uniqueQualifiedTeamIds.length !== 4) {
+    return 'ยังมีทีมผ่านเข้ารอบ 4 ทีมสุดท้ายไม่ครบ ระบบจะสร้างแมตช์สะสมคะแนนให้อัตโนมัติเมื่อได้ครบ 4 ทีม';
+  }
+
+  const invalidTeamId = [team1Id, team2Id]
+    .filter(Boolean)
+    .find(teamId => !uniqueQualifiedTeamIds.includes(String(teamId)));
+
+  if (invalidTeamId) {
+    return 'รอบ 4 ทีมสุดท้ายเลือกได้เฉพาะทีมที่ผ่านรอบ 8 ทีมมาแล้ว';
+  }
+
+  return null;
+};
+
+const getSemiStandings = (matches) => {
+  const standings = new Map();
+
+  matches.forEach(match => {
+    if (!match.team1_id || !match.team2_id) {
+      return;
+    }
+
+    if (!standings.has(match.team1_id)) {
+      standings.set(match.team1_id, { team_id: match.team1_id, win_count: 0, total_points: 0, match_count: 0 });
+    }
+
+    if (!standings.has(match.team2_id)) {
+      standings.set(match.team2_id, { team_id: match.team2_id, win_count: 0, total_points: 0, match_count: 0 });
+    }
+
+    if (match.status !== 'completed' || match.team1_score === null || match.team2_score === null) {
+      return;
+    }
+
+    standings.get(match.team1_id).total_points += match.team1_score;
+    standings.get(match.team1_id).match_count += 1;
+    standings.get(match.team2_id).total_points += match.team2_score;
+    standings.get(match.team2_id).match_count += 1;
+
+    if (match.winner_id === match.team1_id) {
+      standings.get(match.team1_id).win_count += 1;
+      return;
+    }
+
+    if (match.winner_id === match.team2_id) {
+      standings.get(match.team2_id).win_count += 1;
+    }
+  });
+
+  return Array.from(standings.values())
+    .sort((left, right) => {
+      if (right.total_points !== left.total_points) {
+        return right.total_points - left.total_points;
+      }
+
+      if (right.win_count !== left.win_count) {
+        return right.win_count - left.win_count;
+      }
+
+      return left.team_id - right.team_id;
+    });
+};
+
+const syncFinalFromSemiStandings = async (conn, affectedMatchIds = new Set()) => {
+  const [semiRows] = await conn.query(
+    'SELECT * FROM bracket WHERE round = ? ORDER BY match_number',
+    ['semi']
+  );
+
+  const completedSemiMatches = semiRows.filter(match =>
+    match.team1_id
+    && match.team2_id
+    && match.status === 'completed'
+    && match.team1_score !== null
+    && match.team2_score !== null
+  );
+
+  if (semiRows.length !== 6 || completedSemiMatches.length !== 6) {
+    await resetRoundMatches(conn, 'final', affectedMatchIds);
+    return;
+  }
+
+  const standings = getSemiStandings(semiRows);
+
+  if (
+    standings.length !== 4
+    || (
+      standings[1]
+      && standings[2]
+      && standings[1].total_points === standings[2].total_points
+    )
+  ) {
+    await resetRoundMatches(conn, 'final', affectedMatchIds);
+    return;
+  }
+
+  const finalMatches = [
+    { match_number: 1, team1_id: standings[2].team_id, team2_id: standings[3].team_id },
+    { match_number: 2, team1_id: standings[0].team_id, team2_id: standings[1].team_id }
+  ];
+  const [existingFinalRows] = await conn.query(
+    'SELECT * FROM bracket WHERE round = ? ORDER BY match_number',
+    ['final']
+  );
+  const existingFinalByMatchNumber = new Map(
+    existingFinalRows.map(row => [row.match_number, row])
+  );
+
+  for (const finalMatch of finalMatches) {
+    const existingFinalMatch = existingFinalByMatchNumber.get(finalMatch.match_number);
+
+    if (!existingFinalMatch) {
+      const [insertResult] = await conn.query(
+        `INSERT INTO bracket (round, match_number, team1_id, team2_id, status)
+         VALUES (?, ?, ?, ?, ?)`,
+        ['final', finalMatch.match_number, finalMatch.team1_id, finalMatch.team2_id, 'pending']
+      );
+
+      affectedMatchIds.add(insertResult.insertId);
+      continue;
+    }
+
+    const didTeamsChange = (existingFinalMatch.team1_id || null) !== finalMatch.team1_id
+      || (existingFinalMatch.team2_id || null) !== finalMatch.team2_id;
+    const nextTeam1Score = didTeamsChange ? null : existingFinalMatch.team1_score;
+    const nextTeam2Score = didTeamsChange ? null : existingFinalMatch.team2_score;
+    let nextWinnerId = didTeamsChange ? null : existingFinalMatch.winner_id;
+    let nextStatus = didTeamsChange ? 'pending' : existingFinalMatch.status;
+
+    if (nextWinnerId && nextWinnerId !== finalMatch.team1_id && nextWinnerId !== finalMatch.team2_id) {
+      nextWinnerId = null;
+      nextStatus = 'pending';
+    }
+
+    const resolvedOutcome = resolveBracketOutcome({
+      round: 'final',
+      team1Id: finalMatch.team1_id,
+      team2Id: finalMatch.team2_id,
+      requestedWinnerId: nextWinnerId,
+      requestedStatus: nextStatus,
+      team1Score: nextTeam1Score,
+      team2Score: nextTeam2Score
+    });
+    const didMatchChange = didTeamsChange
+      || existingFinalMatch.team1_score !== nextTeam1Score
+      || existingFinalMatch.team2_score !== nextTeam2Score
+      || (existingFinalMatch.winner_id || null) !== (resolvedOutcome.safeWinnerId || null)
+      || existingFinalMatch.status !== resolvedOutcome.safeStatus;
+
+    if (!didMatchChange) {
+      continue;
+    }
+
+    await conn.query(
+      `UPDATE bracket
+       SET team1_id = ?, team2_id = ?, team1_score = ?, team2_score = ?, winner_id = ?, status = ?
+       WHERE id = ?`,
+      [
+        finalMatch.team1_id,
+        finalMatch.team2_id,
+        nextTeam1Score,
+        nextTeam2Score,
+        resolvedOutcome.safeWinnerId,
+        resolvedOutcome.safeStatus,
+        existingFinalMatch.id
+      ]
+    );
+
+    affectedMatchIds.add(existingFinalMatch.id);
+  }
+};
+
 const syncNextRoundMatch = async (conn, match, firstRoundMatchCount, affectedMatchIds = new Set()) => {
+  if (match.round === 'semi') {
+    return;
+  }
+
   const nextRoundKey = getNextRoundKey(match.round, firstRoundMatchCount);
 
   if (!nextRoundKey) {
+    return;
+  }
+
+  if (nextRoundKey === 'semi') {
+    await syncSemiRoundRobinMatches(conn, firstRoundMatchCount, affectedMatchIds);
     return;
   }
 
@@ -210,19 +754,41 @@ const syncNextRoundMatch = async (conn, match, firstRoundMatchCount, affectedMat
 
   const nextTeam1Id = targetField === 'team1_id' ? match.winner_id : nextRoundMatch.team1_id;
   const nextTeam2Id = targetField === 'team2_id' ? match.winner_id : nextRoundMatch.team2_id;
-  let nextWinnerId = nextRoundMatch.winner_id;
-  let nextStatus = nextRoundMatch.status;
+  const didTeamsChange = (nextRoundMatch.team1_id || null) !== (nextTeam1Id || null)
+    || (nextRoundMatch.team2_id || null) !== (nextTeam2Id || null);
+  const nextTeam1Score = didTeamsChange ? null : nextRoundMatch.team1_score;
+  const nextTeam2Score = didTeamsChange ? null : nextRoundMatch.team2_score;
+  let nextWinnerId = didTeamsChange ? null : nextRoundMatch.winner_id;
+  let nextStatus = didTeamsChange ? 'pending' : nextRoundMatch.status;
 
   if (nextWinnerId && nextWinnerId !== nextTeam1Id && nextWinnerId !== nextTeam2Id) {
     nextWinnerId = null;
     nextStatus = 'pending';
   }
 
+  const resolvedOutcome = resolveBracketOutcome({
+    round: nextRoundKey,
+    team1Id: nextTeam1Id,
+    team2Id: nextTeam2Id,
+    requestedWinnerId: nextWinnerId,
+    requestedStatus: nextStatus,
+    team1Score: nextTeam1Score,
+    team2Score: nextTeam2Score
+  });
+
   await conn.query(
     `UPDATE bracket
-     SET team1_id = ?, team2_id = ?, winner_id = ?, status = ?
+     SET team1_id = ?, team2_id = ?, team1_score = ?, team2_score = ?, winner_id = ?, status = ?
      WHERE id = ?`,
-    [nextTeam1Id, nextTeam2Id, nextWinnerId, nextStatus, nextRoundMatch.id]
+    [
+      nextTeam1Id,
+      nextTeam2Id,
+      nextTeam1Score,
+      nextTeam2Score,
+      resolvedOutcome.safeWinnerId,
+      resolvedOutcome.safeStatus,
+      nextRoundMatch.id
+    ]
   );
 
   affectedMatchIds.add(nextRoundMatch.id);
@@ -231,8 +797,10 @@ const syncNextRoundMatch = async (conn, match, firstRoundMatchCount, affectedMat
     ...nextRoundMatch,
     team1_id: nextTeam1Id,
     team2_id: nextTeam2Id,
-    winner_id: nextWinnerId,
-    status: nextStatus
+    team1_score: nextTeam1Score,
+    team2_score: nextTeam2Score,
+    winner_id: resolvedOutcome.safeWinnerId,
+    status: resolvedOutcome.safeStatus
   }, firstRoundMatchCount, affectedMatchIds);
 };
 
@@ -379,11 +947,10 @@ module.exports = {
       // Recent teams (last 5)
       const [recentTeams] = await mysqli.query(
         `SELECT t.*, 
-                p1.family_name as player1_name, 
-                p2.family_name as player2_name
+                player_summary.player1_name,
+                player_summary.player2_name
          FROM teams t
-         LEFT JOIN players p1 ON t.id = p1.team_id AND p1.player_order = 1
-         LEFT JOIN players p2 ON t.id = p2.team_id AND p2.player_order = 2
+         ${teamPlayerSummaryJoinSql}
          ORDER BY t.created_at DESC
          LIMIT 5`
       );
@@ -418,11 +985,10 @@ module.exports = {
       
       let sql = `
         SELECT t.*, 
-               p1.family_name as player1_name, p1.discord_id as player1_discord,
-               p2.family_name as player2_name, p2.discord_id as player2_discord
+               player_summary.player1_name, player_summary.player1_discord,
+               player_summary.player2_name, player_summary.player2_discord
         FROM teams t
-        LEFT JOIN players p1 ON t.id = p1.team_id AND p1.player_order = 1
-        LEFT JOIN players p2 ON t.id = p2.team_id AND p2.player_order = 2
+        ${teamPlayerSummaryJoinSql}
       `;
       
       const params = [];
@@ -577,12 +1143,28 @@ module.exports = {
 
   // Get Bracket
   getBracket: async (req, res) => {
+    const conn = await mysqli.getConnection();
+
     try {
-      const [maxTeamsRow] = await mysqli.query(
+      await conn.beginTransaction();
+
+      const [maxTeamsRow] = await conn.query(
         'SELECT config_value FROM config WHERE config_key = ?',
         ['max_teams']
       );
-      const matches = await getBracketMatches(mysqli);
+      const firstRoundMatchCount = await getFirstRoundMatchCount(conn);
+      const affectedMatchIds = new Set();
+
+      await normalizeScoredMatches(conn, affectedMatchIds);
+
+      if (firstRoundMatchCount) {
+        await syncSemiRoundRobinMatches(conn, firstRoundMatchCount, affectedMatchIds);
+        await syncFinalFromSemiStandings(conn, affectedMatchIds);
+      }
+
+      await conn.commit();
+
+      const matches = await getBracketMatches(conn);
       const parsedMaxTeams = parseInt(maxTeamsRow[0]?.config_value || '32', 10);
       const maxTeams = Number.isNaN(parsedMaxTeams) || parsedMaxTeams < 1 ? 32 : parsedMaxTeams;
 
@@ -595,11 +1177,14 @@ module.exports = {
       });
 
     } catch (error) {
+      await conn.rollback();
       console.error('Get bracket error:', error);
       res.status(500).json({
         success: false,
         message: 'เกิดข้อผิดพลาด'
       });
+    } finally {
+      conn.release();
     }
   },
 
@@ -612,6 +1197,8 @@ module.exports = {
       const team1Id = normalizeBracketId(req.body.team1_id);
       const team2Id = normalizeBracketId(req.body.team2_id);
       let winnerId = normalizeBracketId(req.body.winner_id);
+      const team1Score = normalizeBracketScore(req.body.team1_score);
+      const team2Score = normalizeBracketScore(req.body.team2_score);
       const matchTime = normalizeBracketText(req.body.match_time);
       const streamUrl = normalizeBracketText(req.body.stream_url);
       const notes = normalizeBracketText(req.body.notes);
@@ -634,6 +1221,30 @@ module.exports = {
           return;
         }
 
+        const scoreValidationError = validateBracketScores(requestedRound, team1Id, team2Id, team1Score, team2Score);
+
+        if (scoreValidationError) {
+          await conn.rollback();
+          res.status(400).json({
+            success: false,
+            message: scoreValidationError
+          });
+          return;
+        }
+
+        if (requestedRound === 'semi') {
+          const semiValidationError = await validateSemiTeams(conn, team1Id, team2Id, firstRoundMatchCount);
+
+          if (semiValidationError) {
+            await conn.rollback();
+            res.status(400).json({
+              success: false,
+              message: semiValidationError
+            });
+            return;
+          }
+        }
+
         let nextMatchNumber = requestedMatchNumber;
 
         if (!nextMatchNumber) {
@@ -648,17 +1259,35 @@ module.exports = {
           'SELECT * FROM bracket WHERE round = ? AND match_number = ? LIMIT 1',
           [requestedRound, nextMatchNumber]
         );
-        const safeWinnerId = winnerId && (winnerId === team1Id || winnerId === team2Id) ? winnerId : null;
-        const safeStatus = normalizeBracketStatus(req.body.status, safeWinnerId);
+        const resolvedOutcome = resolveBracketOutcome({
+          round: requestedRound,
+          team1Id: team1Id,
+          team2Id: team2Id,
+          requestedWinnerId: winnerId,
+          requestedStatus: req.body.status,
+          team1Score: team1Score,
+          team2Score: team2Score
+        });
 
         if (existingSlotRows.length > 0) {
           const existingMatch = existingSlotRows[0];
 
           await conn.query(
             `UPDATE bracket 
-             SET team1_id = ?, team2_id = ?, winner_id = ?, match_time = ?, status = ?, stream_url = ?, notes = ?
+             SET team1_id = ?, team2_id = ?, team1_score = ?, team2_score = ?, winner_id = ?, match_time = ?, status = ?, stream_url = ?, notes = ?
              WHERE id = ?`,
-            [team1Id, team2Id, safeWinnerId, matchTime, safeStatus, streamUrl, notes, existingMatch.id]
+            [
+              team1Id,
+              team2Id,
+              team1Score,
+              team2Score,
+              resolvedOutcome.safeWinnerId,
+              matchTime,
+              resolvedOutcome.safeStatus,
+              streamUrl,
+              notes,
+              existingMatch.id
+            ]
           );
 
           matchRecord = {
@@ -668,14 +1297,28 @@ module.exports = {
             match_number: existingMatch.match_number,
             team1_id: team1Id,
             team2_id: team2Id,
-            winner_id: safeWinnerId,
-            status: safeStatus
+            team1_score: team1Score,
+            team2_score: team2Score,
+            winner_id: resolvedOutcome.safeWinnerId,
+            status: resolvedOutcome.safeStatus
           };
         } else {
           const [insertResult] = await conn.query(
-            `INSERT INTO bracket (round, match_number, team1_id, team2_id, winner_id, match_time, status, stream_url, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [requestedRound, nextMatchNumber, team1Id, team2Id, safeWinnerId, matchTime, safeStatus, streamUrl, notes]
+            `INSERT INTO bracket (round, match_number, team1_id, team2_id, team1_score, team2_score, winner_id, match_time, status, stream_url, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              requestedRound,
+              nextMatchNumber,
+              team1Id,
+              team2Id,
+              team1Score,
+              team2Score,
+              resolvedOutcome.safeWinnerId,
+              matchTime,
+              resolvedOutcome.safeStatus,
+              streamUrl,
+              notes
+            ]
           );
 
           matchRecord = {
@@ -684,8 +1327,10 @@ module.exports = {
             match_number: nextMatchNumber,
             team1_id: team1Id,
             team2_id: team2Id,
-            winner_id: safeWinnerId,
-            status: safeStatus
+            team1_score: team1Score,
+            team2_score: team2Score,
+            winner_id: resolvedOutcome.safeWinnerId,
+            status: resolvedOutcome.safeStatus
           };
         }
       } else {
@@ -704,14 +1349,56 @@ module.exports = {
         }
 
         const existingMatch = existingRows[0];
-        const safeWinnerId = winnerId && (winnerId === team1Id || winnerId === team2Id) ? winnerId : null;
-        const safeStatus = normalizeBracketStatus(req.body.status, safeWinnerId);
+        const scoreValidationError = validateBracketScores(existingMatch.round, team1Id, team2Id, team1Score, team2Score);
+
+        if (scoreValidationError) {
+          await conn.rollback();
+          res.status(400).json({
+            success: false,
+            message: scoreValidationError
+          });
+          return;
+        }
+
+        if (existingMatch.round === 'semi') {
+          const semiValidationError = await validateSemiTeams(conn, team1Id, team2Id, firstRoundMatchCount);
+
+          if (semiValidationError) {
+            await conn.rollback();
+            res.status(400).json({
+              success: false,
+              message: semiValidationError
+            });
+            return;
+          }
+        }
+
+        const resolvedOutcome = resolveBracketOutcome({
+          round: existingMatch.round,
+          team1Id: team1Id,
+          team2Id: team2Id,
+          requestedWinnerId: winnerId,
+          requestedStatus: req.body.status,
+          team1Score: team1Score,
+          team2Score: team2Score
+        });
 
         await conn.query(
           `UPDATE bracket 
-           SET team1_id = ?, team2_id = ?, winner_id = ?, match_time = ?, status = ?, stream_url = ?, notes = ?
+           SET team1_id = ?, team2_id = ?, team1_score = ?, team2_score = ?, winner_id = ?, match_time = ?, status = ?, stream_url = ?, notes = ?
            WHERE id = ?`,
-          [team1Id, team2Id, safeWinnerId, matchTime, safeStatus, streamUrl, notes, id]
+          [
+            team1Id,
+            team2Id,
+            team1Score,
+            team2Score,
+            resolvedOutcome.safeWinnerId,
+            matchTime,
+            resolvedOutcome.safeStatus,
+            streamUrl,
+            notes,
+            id
+          ]
         );
 
         matchRecord = {
@@ -721,13 +1408,19 @@ module.exports = {
           match_number: existingMatch.match_number,
           team1_id: team1Id,
           team2_id: team2Id,
-          winner_id: safeWinnerId,
-          status: safeStatus
+          team1_score: team1Score,
+          team2_score: team2Score,
+          winner_id: resolvedOutcome.safeWinnerId,
+          status: resolvedOutcome.safeStatus
         };
       }
 
       affectedMatchIds.add(matchRecord.id);
-      await syncNextRoundMatch(conn, matchRecord, firstRoundMatchCount || matchRecord.match_number, affectedMatchIds);
+      if (matchRecord.round === 'semi') {
+        await syncFinalFromSemiStandings(conn, affectedMatchIds);
+      } else {
+        await syncNextRoundMatch(conn, matchRecord, firstRoundMatchCount || matchRecord.match_number, affectedMatchIds);
+      }
       await conn.commit();
       const updatedMatches = await getBracketMatchesByIds(conn, Array.from(affectedMatchIds));
 
@@ -777,11 +1470,17 @@ module.exports = {
       const affectedMatchIds = new Set();
 
       await conn.query('DELETE FROM bracket WHERE id = ?', [id]);
-      await syncNextRoundMatch(conn, {
-        ...match,
-        winner_id: null,
-        status: 'pending'
-      }, firstRoundMatchCount, affectedMatchIds);
+
+      if (match.round === 'semi') {
+        await syncSemiRoundRobinMatches(conn, firstRoundMatchCount, affectedMatchIds);
+      } else {
+        await syncNextRoundMatch(conn, {
+          ...match,
+          winner_id: null,
+          status: 'pending'
+        }, firstRoundMatchCount, affectedMatchIds);
+      }
+
       await conn.commit();
       const updatedMatches = await getBracketMatchesByIds(conn, Array.from(affectedMatchIds));
 
