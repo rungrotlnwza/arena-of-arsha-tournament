@@ -6,97 +6,10 @@
     </div>
 </header>
 
-<!-- Stage Tabs -->
-<div class="container mb-3">
-    <div class="d-flex justify-content-center gap-2 flex-wrap">
-        <button class="btn btn-custom" id="tabKnockout" onclick="showStage('knockout')">
-            <i class="bi bi-diagram-3 me-2"></i>รอบคัดเลือก
-        </button>
-        <button class="btn btn-outline-custom" id="tabRoundRobin" onclick="showStage('roundrobin')">
-            <i class="bi bi-table me-2"></i>รอบ 4 ทีมสุดท้าย
-        </button>
-        <button class="btn btn-outline-custom" id="tabFinals" onclick="showStage('finals')">
-            <i class="bi bi-trophy me-2"></i>รอบชิงชนะเลิศ
-        </button>
-    </div>
-</div>
-
-<!-- Knockout Stage -->
-<div id="stageKnockout" class="stage-content">
-    <div class="bracket-wrapper">
-        <div id="bracketContainer" class="bracket-state">
-            <div class="text-center py-5">
-                <div class="spinner-border text-warning" role="status"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Round Robin Stage (4 Teams) -->
-<div id="stageRoundRobin" class="stage-content" style="display: none;">
-    <div class="container py-4">
-        <h4 class="text-center mb-4" style="color: var(--primary-gold);">
-            <i class="bi bi-table me-2"></i>รอบ 4 ทีมสุดท้าย (พบกันหมด)
-        </h4>
-        <p class="text-center text-muted mb-4">
-            แข่งคู่ละ 5 Round | ชนะ 2 คะแนน | เสมอ 1 คะแนน | แพ้ 0 คะแนน
-        </p>
-        
-        <!-- Standings Table -->
-        <div class="admin-card mb-4">
-            <h5 class="mb-3" style="color: var(--primary-gold);">ตารางคะแนน</h5>
-            <div class="table-responsive">
-                <table class="table table-dark table-hover">
-                    <thead>
-                        <tr>
-                            <th>อันดับ</th>
-                            <th>ทีม</th>
-                            <th>แข่ง</th>
-                            <th>ชนะ</th>
-                            <th>เสมอ</th>
-                            <th>แพ้</th>
-                            <th style="color: var(--primary-gold);">คะแนน</th>
-                        </tr>
-                    </thead>
-                    <tbody id="standingsBody">
-                        <tr><td colspan="7" class="text-center">กำลังโหลด...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Round Robin Matches (6 matches) -->
-        <h5 class="mb-3" style="color: var(--primary-gold);">ตารางแข่งขัน (6 คู่)</h5>
-        <div id="roundRobinMatches" class="row g-3">
-            <!-- 6 matches will be loaded here -->
-        </div>
-    </div>
-</div>
-
-<!-- Finals Stage -->
-<div id="stageFinals" class="stage-content" style="display: none;">
-    <div class="container py-5">
-        <div class="row justify-content-center g-4">
-            <!-- 3rd Place -->
-            <div class="col-md-5">
-                <div class="admin-card h-100 text-center">
-                    <h5 class="mb-3" style="color: #cd7f32;">
-                        <i class="bi bi-trophy me-2"></i>ชิงอันดับที่ 3
-                    </h5>
-                    <div class="mb-3"><span class="badge bg-secondary">Best of 5</span></div>
-                    <div id="final3rdContent"><p class="text-muted">รอการแข่งขัน</p></div>
-                </div>
-            </div>
-            <!-- 1st Place -->
-            <div class="col-md-5">
-                <div class="admin-card h-100 text-center" style="border: 2px solid var(--primary-gold);">
-                    <h5 class="mb-3" style="color: var(--primary-gold);">
-                        <i class="bi bi-trophy-fill me-2"></i>ชิงอันดับที่ 1
-                    </h5>
-                    <div class="mb-3"><span class="badge bg-warning" style="color: #000;">Best of 9</span></div>
-                    <div id="final1stContent"><p class="text-muted">รอการแข่งขัน</p></div>
-                </div>
-            </div>
+<div class="bracket-wrapper">
+    <div id="bracketContainer" class="bracket-state">
+        <div class="text-center py-5">
+            <div class="spinner-border text-warning" role="status"></div>
         </div>
     </div>
 </div>
@@ -132,23 +45,11 @@
             }
 
             const data = result.data;
-            
-            // Render Knockout Stage
             const rounds = buildRoundStructure(data || {}, result.meta?.initial_round_1_match_count || 0);
             if (rounds.length) {
                 renderBracket(rounds);
             } else {
                 renderState('empty');
-            }
-            
-            // Render Round Robin Stage
-            if (data.round_robin && data.round_robin.length > 0) {
-                renderRoundRobin(data.round_robin, data.standings || []);
-            }
-            
-            // Render Finals Stage
-            if (data.finals) {
-                renderFinals(data.finals);
             }
         }, () => {
             renderState('error');
@@ -759,123 +660,6 @@
         return escapeHtml(value).replace(/`/g, '&#96;');
     }
 
-    // Stage switching
-    function showStage(stage) {
-        const stages = {
-            'knockout': { content: 'stageKnockout', tab: 'tabKnockout' },
-            'roundrobin': { content: 'stageRoundRobin', tab: 'tabRoundRobin' },
-            'finals': { content: 'stageFinals', tab: 'tabFinals' }
-        };
-        
-        const target = stages[stage];
-        if (!target) return;
-        
-        document.querySelectorAll('.stage-content').forEach(el => el.style.display = 'none');
-        document.querySelectorAll('[id^="tab"]').forEach(el => {
-            el.classList.remove('btn-custom');
-            el.classList.add('btn-outline-custom');
-        });
-        
-        document.getElementById(target.content).style.display = 'block';
-        document.getElementById(target.tab).classList.remove('btn-outline-custom');
-        document.getElementById(target.tab).classList.add('btn-custom');
-    }
-
-    // Render Round Robin Stage
-    function renderRoundRobin(matches, standings) {
-        // Render standings
-        const sorted = [...standings].sort((a, b) => b.points - a.points);
-        document.getElementById('standingsBody').innerHTML = sorted.map((team, idx) => `
-            <tr>
-                <td><strong style="color: ${idx < 2 ? 'var(--primary-gold)' : '#ccc'};">${idx + 1}</strong></td>
-                <td>${escapeHtml(team.team_name)}</td>
-                <td>${team.played}</td>
-                <td>${team.wins}</td>
-                <td>${team.draws}</td>
-                <td>${team.losses}</td>
-                <td><strong style="color: var(--primary-gold);">${team.points}</strong></td>
-            </tr>
-        `).join('');
-
-        // Render 6 matches
-        document.getElementById('roundRobinMatches').innerHTML = matches.map(m => `
-            <div class="col-md-6 col-lg-4">
-                <div class="admin-card">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <small style="color: #888;">คู่ที่ ${m.match_number}</small>
-                        <span class="badge bg-${m.status === 'completed' ? 'success' : m.status === 'ongoing' ? 'warning' : 'secondary'}">
-                            ${getStatusText(m.status)}
-                        </span>
-                    </div>
-                    <div class="d-flex justify-content-between py-2" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                        <span style="color: ${m.winner_id === m.team1_id ? 'var(--primary-gold)' : '#fff'}; font-weight: ${m.winner_id === m.team1_id ? '700' : '400'};">
-                            ${escapeHtml(m.team1_name || 'TBD')}
-                        </span>
-                        ${m.team1_score !== undefined ? `<span class="badge bg-dark">${m.team1_score}</span>` : ''}
-                    </div>
-                    <div class="d-flex justify-content-between py-2">
-                        <span style="color: ${m.winner_id === m.team2_id ? 'var(--primary-gold)' : '#fff'}; font-weight: ${m.winner_id === m.team2_id ? '700' : '400'};">
-                            ${escapeHtml(m.team2_name || 'TBD')}
-                        </span>
-                        ${m.team2_score !== undefined ? `<span class="badge bg-dark">${m.team2_score}</span>` : ''}
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    // Render Finals Stage
-    function renderFinals(finals) {
-        if (finals.third_place) {
-            const m = finals.third_place;
-            document.getElementById('final3rdContent').innerHTML = `
-                <div class="match-card" style="background: rgba(30,30,30,0.9); border-radius: 10px; padding: 15px;">
-                    <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                        <span style="color: ${m.winner_id === m.team1_id ? 'var(--primary-gold)' : '#fff'}; font-weight: ${m.winner_id === m.team1_id ? '700' : '400'};">
-                            ${escapeHtml(m.team1_name || 'TBD')}
-                        </span>
-                        ${m.team1_score !== undefined ? `<span class="badge bg-dark">${m.team1_score}</span>` : ''}
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center py-2">
-                        <span style="color: ${m.winner_id === m.team2_id ? 'var(--primary-gold)' : '#fff'}; font-weight: ${m.winner_id === m.team2_id ? '700' : '400'};">
-                            ${escapeHtml(m.team2_name || 'TBD')}
-                        </span>
-                        ${m.team2_score !== undefined ? `<span class="badge bg-dark">${m.team2_score}</span>` : ''}
-                    </div>
-                    <div class="mt-2">
-                        <span class="badge bg-${m.status === 'completed' ? 'success' : m.status === 'ongoing' ? 'warning' : 'secondary'}">
-                            ${getStatusText(m.status)}
-                        </span>
-                    </div>
-                </div>
-            `;
-        }
-
-        if (finals.first_place) {
-            const m = finals.first_place;
-            document.getElementById('final1stContent').innerHTML = `
-                <div class="match-card" style="background: rgba(30,30,30,0.9); border: 1px solid var(--primary-gold); border-radius: 10px; padding: 15px;">
-                    <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                        <span style="color: ${m.winner_id === m.team1_id ? 'var(--primary-gold)' : '#fff'}; font-weight: ${m.winner_id === m.team1_id ? '700' : '400'};">
-                            ${escapeHtml(m.team1_name || 'TBD')}
-                        </span>
-                        ${m.team1_score !== undefined ? `<span class="badge bg-dark">${m.team1_score}</span>` : ''}
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center py-2">
-                        <span style="color: ${m.winner_id === m.team2_id ? 'var(--primary-gold)' : '#fff'}; font-weight: ${m.winner_id === m.team2_id ? '700' : '400'};">
-                            ${escapeHtml(m.team2_name || 'TBD')}
-                        </span>
-                        ${m.team2_score !== undefined ? `<span class="badge bg-dark">${m.team2_score}</span>` : ''}
-                    </div>
-                    <div class="mt-2">
-                        <span class="badge bg-${m.status === 'completed' ? 'success' : m.status === 'ongoing' ? 'warning' : 'secondary'}">
-                            ${getStatusText(m.status)}
-                        </span>
-                    </div>
-                </div>
-            `;
-        }
-    }
 </script>
 
 <style>
