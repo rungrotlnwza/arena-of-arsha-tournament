@@ -16,11 +16,33 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label">วันเวลาเปิดรับสมัคร</label>
-                        <input type="datetime-local" class="form-control bg-dark text-light" id="registration_start">
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <input type="date" class="form-control bg-dark text-light" id="registration_start_date">
+                            </div>
+                            <div class="col-6">
+                                <select class="form-select bg-dark text-light" id="registration_start_hour"></select>
+                            </div>
+                            <div class="col-6">
+                                <select class="form-select bg-dark text-light" id="registration_start_minute"></select>
+                            </div>
+                        </div>
+                        <small class="text-muted">เวลาแบบ 24 ชั่วโมง</small>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">วันเวลาปิดรับสมัคร</label>
-                        <input type="datetime-local" class="form-control bg-dark text-light" id="registration_end">
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <input type="date" class="form-control bg-dark text-light" id="registration_end_date">
+                            </div>
+                            <div class="col-6">
+                                <select class="form-select bg-dark text-light" id="registration_end_hour"></select>
+                            </div>
+                            <div class="col-6">
+                                <select class="form-select bg-dark text-light" id="registration_end_minute"></select>
+                            </div>
+                        </div>
+                        <small class="text-muted">เวลาแบบ 24 ชั่วโมง</small>
                     </div>
                 </div>
                 <div class="alert alert-info" style="background: rgba(13, 202, 240, 0.1); border-color: rgba(13, 202, 240, 0.3); color: #ddd;">
@@ -52,6 +74,8 @@
 
 <script>
     let currentConfig = {};
+
+    setupTimeSelectors();
     
     // Load settings
     fetch('/api/admin/config', { credentials: 'include' })
@@ -68,13 +92,13 @@
             currentConfig = result.data;
             
             // Fill form
-            document.getElementById('registration_start').value = formatDateTimeLocal(currentConfig.registration_start);
-            document.getElementById('registration_end').value = formatDateTimeLocal(currentConfig.registration_end);
+            setDateTimeFields('registration_start', currentConfig.registration_start);
+            setDateTimeFields('registration_end', currentConfig.registration_end);
             
             // คำนวณสถานะรับสมัครตามเวลา
             const now = new Date();
-            const regStart = currentConfig.registration_start ? new Date(currentConfig.registration_start) : null;
-            const regEnd = currentConfig.registration_end ? new Date(currentConfig.registration_end) : null;
+            const regStart = parseConfigDateTime(currentConfig.registration_start);
+            const regEnd = parseConfigDateTime(currentConfig.registration_end);
             let statusText = 'ปิด';
             let statusColor = '#888';
             
@@ -96,22 +120,15 @@
             document.getElementById('currentSettings').innerHTML = `
                 <p><strong>สถานะ:</strong> <span style="color: ${statusColor};">${statusText}</span></p>
                 <hr style="border-color: var(--border-color);">
-                <p class="mb-1"><small><strong>เปิดรับสมัคร:</strong><br>${regStart ? regStart.toLocaleString('th-TH') : '-'}</small></p>
-                <p class="mb-0"><small><strong>ปิดรับสมัคร:</strong><br>${regEnd ? regEnd.toLocaleString('th-TH') : '-'}</small></p>
+                <p class="mb-1"><small><strong>เปิดรับสมัคร:</strong><br>${formatDisplayDateTime(currentConfig.registration_start)}</small></p>
+                <p class="mb-0"><small><strong>ปิดรับสมัคร:</strong><br>${formatDisplayDateTime(currentConfig.registration_end)}</small></p>
             `;
         });
     
-    function formatDateTimeLocal(dateStr) {
-        if (!dateStr) return '';
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return '';
-        return d.toISOString().slice(0, 16);
-    }
-    
     function saveSettings() {
         const data = {
-            registration_start: document.getElementById('registration_start').value,
-            registration_end: document.getElementById('registration_end').value
+            registration_start: buildDateTimeValue('registration_start'),
+            registration_end: buildDateTimeValue('registration_end')
         };
         
         fetch('/api/admin/config', {
@@ -129,5 +146,90 @@
                 alert(result.message || 'เกิดข้อผิดพลาด');
             }
         });
+    }
+
+    function setupTimeSelectors() {
+        fillNumberOptions('registration_start_hour', 24);
+        fillNumberOptions('registration_start_minute', 60);
+        fillNumberOptions('registration_end_hour', 24);
+        fillNumberOptions('registration_end_minute', 60);
+    }
+
+    function fillNumberOptions(elementId, max) {
+        const select = document.getElementById(elementId);
+        select.innerHTML = '';
+
+        for (let i = 0; i < max; i += 1) {
+            const option = document.createElement('option');
+            option.value = padNumber(i);
+            option.textContent = padNumber(i);
+            select.appendChild(option);
+        }
+    }
+
+    function setDateTimeFields(prefix, dateStr) {
+        const parsedDate = parseConfigDateTime(dateStr);
+        const dateInput = document.getElementById(`${prefix}_date`);
+        const hourSelect = document.getElementById(`${prefix}_hour`);
+        const minuteSelect = document.getElementById(`${prefix}_minute`);
+
+        if (!parsedDate) {
+            dateInput.value = '';
+            hourSelect.value = '00';
+            minuteSelect.value = '00';
+            return;
+        }
+
+        dateInput.value = formatDateInput(parsedDate);
+        hourSelect.value = padNumber(parsedDate.getHours());
+        minuteSelect.value = padNumber(parsedDate.getMinutes());
+    }
+
+    function buildDateTimeValue(prefix) {
+        const dateValue = document.getElementById(`${prefix}_date`).value;
+        const hourValue = document.getElementById(`${prefix}_hour`).value;
+        const minuteValue = document.getElementById(`${prefix}_minute`).value;
+
+        if (!dateValue) return '';
+        return `${dateValue}T${hourValue}:${minuteValue}`;
+    }
+
+    function parseConfigDateTime(dateStr) {
+        if (!dateStr) return null;
+
+        const normalized = String(dateStr).trim().replace(' ', 'T');
+        const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+
+        if (match) {
+            const year = Number(match[1]);
+            const month = Number(match[2]);
+            const day = Number(match[3]);
+            const hour = Number(match[4]);
+            const minute = Number(match[5]);
+            const second = Number(match[6] || '0');
+            const parsed = new Date(year, month - 1, day, hour, minute, second);
+
+            if (!isNaN(parsed.getTime())) {
+                return parsed;
+            }
+        }
+
+        const fallback = new Date(dateStr);
+        if (isNaN(fallback.getTime())) return null;
+        return fallback;
+    }
+
+    function formatDateInput(date) {
+        return `${date.getFullYear()}-${padNumber(date.getMonth() + 1)}-${padNumber(date.getDate())}`;
+    }
+
+    function formatDisplayDateTime(dateStr) {
+        const parsedDate = parseConfigDateTime(dateStr);
+        if (!parsedDate) return '-';
+        return `${formatDateInput(parsedDate)} ${padNumber(parsedDate.getHours())}:${padNumber(parsedDate.getMinutes())}`;
+    }
+
+    function padNumber(value) {
+        return String(value).padStart(2, '0');
     }
 </script>
